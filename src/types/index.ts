@@ -54,3 +54,27 @@ export interface AppData {
   contacts: Contact[]
   notifications: AppNotification[]
 }
+
+export type ModerationReviewStatus = 'pending' | 'approved' | 'rejected'
+
+export interface ModerationReview {
+  id: string
+  className: string
+  category: Category
+  title: string
+  content: string
+  targetDate: string
+  memo: string
+  submittedAt: string
+  authorId: string
+  authorName: string
+  authorEmail: string
+  aiCategory: string
+  aiReason: string
+  status: ModerationReviewStatus
+  reviewedAt?: string
+  reviewedBy?: string
+  reviewedByName?: string
+  decisionReason?: string
+  contactId?: string
+}

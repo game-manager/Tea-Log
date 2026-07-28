@@ -44,6 +44,61 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
     }
 
+    function hasValidModerationSubmission(reviewId) {
+      return request.resource.data.keys().hasAll([
+          'id', 'className', 'category', 'title', 'content', 'targetDate', 'memo',
+          'submittedAt', 'authorId', 'authorName', 'authorEmail', 'aiCategory',
+          'aiReason', 'status'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id', 'className', 'category', 'title', 'content', 'targetDate', 'memo',
+          'submittedAt', 'authorId', 'authorName', 'authorEmail', 'aiCategory',
+          'aiReason', 'status'
+        ])
+        && request.resource.data.id == reviewId
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorEmail == request.auth.token.email
+        && request.resource.data.status == 'pending'
+        && request.resource.data.className is string
+        && request.resource.data.category in ['持ち物', '宿題', '提出物', '時間割変更', '行事', '部活動', 'その他']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 60
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.content.size() <= 500
+        && request.resource.data.memo is string
+        && request.resource.data.memo.size() <= 200
+        && request.resource.data.targetDate is string
+        && request.resource.data.targetDate.size() <= 10
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName.size() > 0
+        && request.resource.data.authorName.size() <= 40
+        && request.resource.data.aiCategory is string
+        && request.resource.data.aiCategory.size() <= 40
+        && request.resource.data.aiReason is string
+        && request.resource.data.aiReason.size() > 0
+        && request.resource.data.aiReason.size() <= 1000;
+    }
+
+    function isValidModerationDecision() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'reviewedAt', 'reviewedBy', 'reviewedByName', 'decisionReason', 'contactId'
+        ])
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['approved', 'rejected']
+        && request.resource.data.reviewedAt is string
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedByName is string
+        && request.resource.data.reviewedByName.size() > 0
+        && request.resource.data.reviewedByName.size() <= 40
+        && request.resource.data.decisionReason is string
+        && request.resource.data.decisionReason.size() > 0
+        && request.resource.data.decisionReason.size() <= 300
+        && (request.resource.data.status == 'rejected'
+          || (request.resource.data.contactId is string && request.resource.data.contactId.size() > 0));
+    }
+
     match /teacherslogProfiles/{userId} {
       allow get: if isAdmin()
         || (isAllowedSchoolGoogleUser()
@@ -89,6 +144,18 @@ service cloud.firestore {
         || (isAllowedSchoolGoogleUser()
           && exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
           && get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className == className);
+    }
+
+    match /teacherslogModerationQueue/{reviewId} {
+      allow read: if isAdmin()
+        || (isAllowedSchoolGoogleUser() && resource.data.authorId == request.auth.uid);
+      allow create: if isAllowedSchoolGoogleUser()
+        && exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
+        && (isAdmin()
+          || get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className == request.resource.data.className)
+        && hasValidModerationSubmission(reviewId);
+      allow update: if isAdmin() && isValidModerationDecision();
+      allow delete: if false;
     }
 
     match /{document=**} {

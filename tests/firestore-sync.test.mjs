@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { readFile } from 'node:fs/promises'
-import { initializeTestEnvironment } from '@firebase/rules-unit-testing'
-import { doc, getDoc, onSnapshot, runTransaction, setDoc } from 'firebase/firestore'
+import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
+import { doc, getDoc, onSnapshot, runTransaction, setDoc, updateDoc } from 'firebase/firestore'
 
 const projectId = 'teacherslog-sync-test'
 const className = '2年3組'
@@ -133,4 +133,43 @@ test('端末Aの投稿が保存され、端末Bへリアルタイム反映され
   const savedIds = afterConcurrentPosts.data().contacts.map((contact) => contact.id)
   assert.ok(savedIds.includes('concurrent-a'), '端末Aの同時投稿が保存される')
   assert.ok(savedIds.includes('concurrent-b'), '端末Bの同時投稿が保存される')
+})
+
+test('AI判定後の投稿は本人だけが登録でき、管理者だけが審査結果を更新できる', async () => {
+  const student = testEnvironment.authenticatedContext('student-device-a', authToken('device-a@ryugasaki1-h.ibk.ed.jp')).firestore()
+  const classmate = testEnvironment.authenticatedContext('student-device-b', authToken('device-b@ryugasaki1-h.ibk.ed.jp')).firestore()
+  const admin = testEnvironment.authenticatedContext('admin-user', authToken('saito.nozomu@ryugasaki1-h.ibk.ed.jp')).firestore()
+  const reviewId = 'moderation-review-001'
+  const review = {
+    id: reviewId,
+    className,
+    category: 'その他',
+    title: '管理者審査用の発言',
+    content: 'Geminiが管理者確認を必要と判定した内容です。',
+    targetDate: '2026-07-29',
+    memo: '',
+    submittedAt: '2026-07-28T13:00:00.000Z',
+    authorId: 'student-device-a',
+    authorName: '端末A',
+    authorEmail: 'device-a@ryugasaki1-h.ibk.ed.jp',
+    aiCategory: 'other',
+    aiReason: '管理者による確認が必要です。',
+    status: 'pending',
+  }
+
+  const studentRef = doc(student, 'teacherslogModerationQueue', reviewId)
+  await assertSucceeds(setDoc(studentRef, review))
+  await assertFails(getDoc(doc(classmate, 'teacherslogModerationQueue', reviewId)))
+  await assertFails(updateDoc(studentRef, { status: 'approved' }))
+
+  const adminRef = doc(admin, 'teacherslogModerationQueue', reviewId)
+  await assertSucceeds(getDoc(adminRef))
+  await assertSucceeds(updateDoc(adminRef, {
+    status: 'approved',
+    reviewedAt: '2026-07-28T13:05:00.000Z',
+    reviewedBy: 'admin-user',
+    reviewedByName: '管理者',
+    decisionReason: '内容を確認し公開を承認しました。',
+    contactId: 'approved-contact-001',
+  }))
 })

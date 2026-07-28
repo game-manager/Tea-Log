@@ -5,6 +5,7 @@ import { Header } from './components/Header'
 import { isAdminEmail } from './config/admins'
 import { SCHOOL_CLASSES } from './config/classes'
 import { useFirebaseAuth } from './hooks/useFirebaseAuth'
+import { useModerationQueue } from './hooks/useModerationQueue'
 import { useTeachersLog } from './hooks/useTeachersLog'
 import { useUserProfile } from './hooks/useUserProfile'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
@@ -53,6 +54,7 @@ export default function App() {
     ? profileSession.profiles.filter((profile) => profile.className === activeUser.className)
     : [], [activeUser, profileSession.profiles])
   const store = useTeachersLog(activeUser, classProfiles)
+  const reviewQueue = useModerationQueue(user, profileSession.profiles)
   const currentContact = store.contacts.find((contact) => contact.id === selectedId)
   const userNotifications = useMemo(() => activeUser ? store.notifications.filter((item) => item.userId === activeUser.id) : [], [activeUser, store.notifications])
   const unreadCount = userNotifications.filter((item) => !item.read).length
@@ -78,7 +80,20 @@ export default function App() {
     <div className="app admin">
       <Header user={user} unreadCount={0} onNotifications={() => undefined} onLogout={firebaseSession.logout} hideNotifications />
       <AdminWorkspaceBar mode={adminMode} className={adminClassName} onModeChange={changeAdminMode} onClassChange={changeAdminClass} />
-      <AdminDashboardPage currentUser={user} profiles={profileSession.profiles} savingId={profileSession.adminSavingId} error={profileSession.error} onUpdate={profileSession.updateProfileAsAdmin} onOpenClass={openAdminClass} />
+      <AdminDashboardPage
+        currentUser={user}
+        profiles={profileSession.profiles}
+        savingId={profileSession.adminSavingId}
+        error={profileSession.error}
+        moderationReviews={reviewQueue.reviews}
+        moderationLoading={reviewQueue.loading}
+        moderationProcessingId={reviewQueue.processingId}
+        moderationError={reviewQueue.error}
+        onUpdate={profileSession.updateProfileAsAdmin}
+        onOpenClass={openAdminClass}
+        onApproveReview={(reviewId) => reviewQueue.approve(reviewId, user)}
+        onRejectReview={(reviewId, reason) => reviewQueue.reject(reviewId, user, reason)}
+      />
       <footer className="app-footer"><span>TeachersLog Admin · {firebaseSession.account.email}</span></footer>
     </div>
   )
@@ -109,7 +124,11 @@ export default function App() {
         canModerate={isAdmin}
       />
     }
-    if (page === 'create' && activeUser.role === 'student') return <CreatePostPage onBack={() => navigate('home')} onSubmit={(input) => { const id = store.createContact(input, activeUser); openContact(id) }} />
+    if (page === 'create' && activeUser.role === 'student') return <CreatePostPage
+      onBack={() => navigate('home')}
+      onSubmit={(input) => { const id = store.createContact(input, activeUser); openContact(id) }}
+      onReviewRequired={async (input, result) => { await reviewQueue.submitForReview(input, activeUser, result) }}
+    />
     if (page === 'history') return <HistoryPage user={activeUser} contacts={store.contacts} onOpen={openContact} />
     if (page === 'notifications') return <NotificationsPage notifications={userNotifications} onOpen={openContact} onRead={store.markNotificationRead} onReadAll={() => store.markAllNotificationsRead(activeUser.id)} />
     if (activeUser.role === 'parent') return <ParentHomePage user={activeUser} contacts={store.contacts} onOpen={openContact} />

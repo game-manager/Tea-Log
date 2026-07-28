@@ -34,6 +34,7 @@ type ErrorWithDetails = {
   customErrorData?: {
     status?: unknown
     statusText?: unknown
+    response?: unknown
   }
 }
 
@@ -141,6 +142,31 @@ function isRetryableError(error: unknown) {
     || message.includes('network') || message.includes('timeout') || message.includes('failed to fetch')
 }
 
+function isSafetyBlockedError(error: unknown) {
+  const value = (error && typeof error === 'object' ? error : {}) as ErrorWithDetails
+  const response = value.customErrorData?.response
+  if (response && typeof response === 'object') {
+    const candidate = response as {
+      promptFeedback?: { blockReason?: unknown }
+      candidates?: Array<{ finishReason?: unknown }>
+    }
+    if (candidate.promptFeedback?.blockReason) return true
+    const blockedReasons = new Set(['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII'])
+    if (candidate.candidates?.some((item) => blockedReasons.has(String(item.finishReason)))) return true
+  }
+  const { code, message } = errorDetails(error)
+  return code.includes('response-error')
+    && (message.includes('safety') || message.includes('blocklist') || message.includes('prohibited_content') || message.includes('spii'))
+}
+
+function safetyBlockedResult(): ModerationResult {
+  return {
+    allowed: false,
+    category: 'other',
+    reason: 'Geminiの安全フィルターにより自動公開できませんでした。管理者が内容を確認します。',
+  }
+}
+
 export function getModerationErrorMessage(error: unknown) {
   if (error instanceof ContentModerationError) {
     return `${error.message}（${error.diagnosticCode}）`
@@ -194,12 +220,23 @@ export async function moderateContact(input: NewContactInput): Promise<Moderatio
   try {
     return await requestModeration(payload)
   } catch (firstError) {
+    if (isSafetyBlockedError(firstError)) return safetyBlockedResult()
     if (isAuthError(firstError) && firebaseAuth.currentUser) {
       await getIdToken(firebaseAuth.currentUser, true)
-      return requestModeration(payload)
+      try {
+        return await requestModeration(payload)
+      } catch (retryError) {
+        if (isSafetyBlockedError(retryError)) return safetyBlockedResult()
+        throw retryError
+      }
     }
     if (isRetryableError(firstError)) {
-      return requestModeration(payload)
+      try {
+        return await requestModeration(payload)
+      } catch (retryError) {
+        if (isSafetyBlockedError(retryError)) return safetyBlockedResult()
+        throw retryError
+      }
     }
     throw firstError
   }

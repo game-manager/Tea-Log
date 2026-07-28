@@ -1,9 +1,10 @@
 import { ArrowRight, Eye, GraduationCap, Save, Search, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { AdminModerationQueue } from '../components/AdminModerationQueue'
 import { isAdminEmail } from '../config/admins'
 import { SCHOOL_CLASSES } from '../config/classes'
 import type { AdminProfileUpdate } from '../hooks/useUserProfile'
-import type { User } from '../types'
+import type { ModerationReview, User } from '../types'
 
 type FilterRole = 'all' | 'student' | 'parent' | 'admin'
 
@@ -12,8 +13,14 @@ interface Props {
   profiles: User[]
   savingId: string
   error: string
+  moderationReviews: ModerationReview[]
+  moderationLoading: boolean
+  moderationProcessingId: string
+  moderationError: string
   onUpdate: (userId: string, input: AdminProfileUpdate) => Promise<void>
   onOpenClass: (mode: 'student' | 'parent', className: string) => void
+  onApproveReview: (reviewId: string) => Promise<void>
+  onRejectReview: (reviewId: string, reason: string) => Promise<void>
 }
 
 function roleLabel(role: User['role']) {
@@ -66,7 +73,10 @@ function UserEditor({ profile, saving, onUpdate }: {
   )
 }
 
-export function AdminDashboardPage({ currentUser, profiles, savingId, error, onUpdate, onOpenClass }: Props) {
+export function AdminDashboardPage({
+  currentUser, profiles, savingId, error, moderationReviews, moderationLoading,
+  moderationProcessingId, moderationError, onUpdate, onOpenClass, onApproveReview, onRejectReview,
+}: Props) {
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<FilterRole>('all')
   const [quickClass, setQuickClass] = useState('2年3組')
@@ -105,6 +115,14 @@ export function AdminDashboardPage({ currentUser, profiles, savingId, error, onU
         <div><UserRound /><span>保護者<strong>{parentCount}</strong></span></div>
         <div><ShieldCheck /><span>管理者 / クラス<strong>{adminCount} / {classCount}</strong></span></div>
       </section>
+      <AdminModerationQueue
+        reviews={moderationReviews}
+        loading={moderationLoading}
+        processingId={moderationProcessingId}
+        error={moderationError}
+        onApprove={onApproveReview}
+        onReject={onRejectReview}
+      />
       <section className="admin-class-section">
         <div className="admin-section-heading"><div><h2>クラス運用</h2><p>管理者のまま対象クラスの投稿・確認・履歴・保護者画面を利用できます。</p></div></div>
         <div className="admin-quick-launch">
