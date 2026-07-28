@@ -1,4 +1,4 @@
-import { Bell, BookOpenCheck, ChevronDown } from 'lucide-react'
+import { Bell, BookOpenCheck, ChevronDown, LogOut } from 'lucide-react'
 import type { User } from '../types'
 
 interface Props {
@@ -7,9 +7,10 @@ interface Props {
   unreadCount: number
   onUserChange: (user: User) => void
   onNotifications: () => void
+  onLogout: () => void
 }
 
-export function Header({ user, users, unreadCount, onUserChange, onNotifications }: Props) {
+export function Header({ user, users, unreadCount, onUserChange, onNotifications, onLogout }: Props) {
   return (
     <header className={`app-header ${user.role}`}>
       <div className="header-inner">
@@ -21,6 +22,9 @@ export function Header({ user, users, unreadCount, onUserChange, onNotifications
           <button className="icon-button" onClick={onNotifications} aria-label={`通知 ${unreadCount}件`}>
             <Bell size={21} />
             {unreadCount > 0 && <span className="notification-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+          </button>
+          <button className="icon-button logout-button" onClick={onLogout} aria-label="Googleアカウントからログアウト" title="ログアウト">
+            <LogOut size={19} />
           </button>
           <label className="user-switcher">
             <span className="user-avatar" style={{ background: user.avatarColor }}>{user.name.slice(0, 1)}</span>

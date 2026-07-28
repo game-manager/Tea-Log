@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAllowedSchoolGoogleUser() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('^[^@]+@ryugasaki1-h[.]ibk[.]ed[.]jp$')
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    match /teacherslog/{document=**} {
+      allow read, write: if isAllowedSchoolGoogleUser();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

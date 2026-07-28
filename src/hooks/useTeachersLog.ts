@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { parents, seedData } from '../data/seed'
+import { firestore } from '../lib/firebase'
 import type { AppData, Category, Contact, User } from '../types'
 
 const STORAGE_KEY = 'teacherslog:data:v1'
@@ -21,9 +23,31 @@ export interface NewContactInput {
   memo: string
 }
 
-export const useTeachersLog = () => {
+export const useTeachersLog = (cloudEnabled: boolean) => {
   const [data, setData] = useState<AppData>(loadData)
   const storageError = false
+  const [cloudReady, setCloudReady] = useState(false)
+  const [cloudError, setCloudError] = useState('')
+  const remoteUpdate = useRef(false)
+
+  useEffect(() => {
+    if (!cloudEnabled) return
+    const appDataRef = doc(firestore, 'teacherslog', 'appData')
+    return onSnapshot(appDataRef, (snapshot) => {
+      if (snapshot.exists()) {
+        remoteUpdate.current = true
+        setData(snapshot.data() as AppData)
+        setCloudReady(true)
+        setCloudError('')
+      } else {
+        setDoc(appDataRef, seedData)
+          .then(() => setCloudReady(true))
+          .catch(() => setCloudError('クラウドデータの初期化に失敗しました。'))
+      }
+    }, () => {
+      setCloudError('Firestoreに接続できません。権限またはネットワークをご確認ください。')
+    })
+  }, [cloudEnabled])
 
   useEffect(() => {
     try {
@@ -32,6 +56,16 @@ export const useTeachersLog = () => {
       console.warn('TeachersLog could not persist data to localStorage.')
     }
   }, [data])
+
+  useEffect(() => {
+    if (!cloudEnabled || !cloudReady) return
+    if (remoteUpdate.current) {
+      remoteUpdate.current = false
+      return
+    }
+    setDoc(doc(firestore, 'teacherslog', 'appData'), data)
+      .catch(() => console.warn('TeachersLog could not sync data to Firestore.'))
+  }, [cloudEnabled, cloudReady, data])
 
   useEffect(() => {
     const sync = (event: StorageEvent) => {
@@ -135,6 +169,8 @@ export const useTeachersLog = () => {
     contacts: data.contacts,
     notifications: data.notifications,
     storageError,
+    cloudReady,
+    cloudError,
     createContact,
     confirmContact,
     markParentRead,

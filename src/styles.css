@@ -235,6 +235,30 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .fatal-error h1 { color: var(--student); }
 .fatal-error button { margin: 15px auto; padding: 10px 16px; color: white; background: var(--student); border: 0; border-radius: 9px; }
 
+.firebase-login-page { min-height: 100vh; padding: 28px 18px; display: grid; place-items: center; background: #eef5f1; }
+.firebase-login-card { width: min(450px, 100%); padding: 38px; text-align: center; background: white; border: 1px solid #d9e5de; border-radius: 24px; box-shadow: 0 18px 55px rgba(25,63,44,.12); }
+.firebase-brand { justify-content: center; color: var(--student); margin-bottom: 30px; }
+.secure-icon { width: 67px; height: 67px; margin: 0 auto 18px; display: grid; place-items: center; color: var(--student); background: var(--student-soft); border-radius: 20px; }
+.firebase-login-card h1 { margin: 6px 0 13px; font-size: 31px; line-height: 1.4; letter-spacing: -.7px; }
+.firebase-login-card > p { margin: 0 auto 22px; color: var(--muted); font-size: 13px; line-height: 1.75; }
+.allowed-domain { padding: 13px 15px; display: flex; align-items: center; justify-content: center; gap: 10px; text-align: left; color: #315844; background: #f0f8f4; border: 1px solid #d3eade; border-radius: 13px; }
+.allowed-domain > span { display: flex; flex-direction: column; }
+.allowed-domain small { color: #71827a; font-size: 9px; }
+.allowed-domain strong { font-size: 12px; }
+.google-login-button { width: 100%; min-height: 50px; margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 9px; color: white; font-size: 13px; font-weight: 700; background: #1f6f4a; border: 0; border-radius: 12px; cursor: pointer; }
+.google-login-button:disabled { opacity: .7; cursor: wait; }
+.auth-error { margin-top: 15px; padding: 11px 13px; color: #9c3e33; font-size: 11px; line-height: 1.55; background: #fff1ef; border: 1px solid #f1d0cb; border-radius: 10px; }
+.auth-policy { display: block; margin-top: 13px; color: #84918a; font-size: 9px; line-height: 1.65; }
+.firebase-loading-page, .cloud-error-page { min-height: 100vh; padding: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #456156; background: #f4f8f6; text-align: center; }
+.firebase-loading-page > strong { margin: 8px 0 22px; color: var(--student); font-size: 21px; }
+.firebase-loading-page > span { margin-top: 9px; color: #74837b; font-size: 11px; }
+.spin { animation: spin 1s linear infinite; }
+.cloud-error-page h1 { color: var(--student); }
+.cloud-error-page h2 { margin-bottom: 5px; }
+.cloud-error-page p { color: var(--muted); }
+.cloud-error-page button { margin-top: 12px; padding: 10px 16px; color: white; background: var(--student); border: 0; border-radius: 10px; cursor: pointer; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 @media (max-width: 680px) {
   .app { padding-bottom: 88px; }
   .header-inner { height: 62px; padding: 0 15px; }
@@ -288,6 +312,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .intro-points { display: none; }
   .login-panel { min-height: auto; padding: 28px 18px 40px; }
   .login-card h2 { font-size: 22px; }
+  .firebase-login-card { padding: 29px 20px; border-radius: 20px; }
+  .firebase-login-card h1 { font-size: 27px; }
 }
 
 @media (min-width: 900px) {
