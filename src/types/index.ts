@@ -1,4 +1,4 @@
-export type UserRole = 'student' | 'parent'
+export type UserRole = 'student' | 'parent' | 'admin'
 export type ContactStatus = 'unconfirmed' | 'confirming' | 'confirmed'
 export type Category = '持ち物' | '宿題' | '提出物' | '時間割変更' | '行事' | '部活動' | 'その他'
 export type Page = 'home' | 'create' | 'history' | 'notifications' | 'detail'

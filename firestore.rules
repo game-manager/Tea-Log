@@ -9,43 +9,75 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_provider == 'google.com';
     }
 
+    function isConfiguredAdminEmail(email) {
+      return email in [
+        'saito.nozomu@ryugasaki1-h.ibk.ed.jp',
+        'horikoshi.kenta@ryugasaki1-h.ibk.ed.jp',
+        'kobayashi.takuto@ryugasaki1-h.ibk.ed.jp'
+      ];
+    }
+
+    function isAdmin() {
+      return isAllowedSchoolGoogleUser()
+        && isConfiguredAdminEmail(request.auth.token.email);
+    }
+
     function isValidProfile(userId) {
       return request.resource.data.keys().hasAll(['id', 'email', 'name', 'role', 'className', 'avatarColor', 'createdAt', 'updatedAt'])
         && request.resource.data.keys().hasOnly(['id', 'email', 'name', 'role', 'className', 'avatarColor', 'childName', 'photoUrl', 'createdAt', 'updatedAt'])
         && request.resource.data.id == userId
-        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.email is string
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 40
-        && request.resource.data.role in ['student', 'parent']
         && request.resource.data.className is string
-        && request.resource.data.className.matches('^[1-3]年([1-9]|10)組$');
+        && ((isConfiguredAdminEmail(request.resource.data.email)
+            && request.resource.data.role == 'admin'
+            && request.resource.data.className == '管理者')
+          || (!isConfiguredAdminEmail(request.resource.data.email)
+            && request.resource.data.role in ['student', 'parent']
+            && request.resource.data.className.matches('^[1-3]年([1-9]|10)組$')));
+    }
+
+    function preservesProfileIdentity() {
+      return request.resource.data.id == resource.data.id
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.createdAt == resource.data.createdAt;
     }
 
     match /teacherslogProfiles/{userId} {
-      allow get: if isAllowedSchoolGoogleUser()
-        && (request.auth.uid == userId
-          || (exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
-            && resource.data.className == get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className));
-      allow list: if isAllowedSchoolGoogleUser()
-        && exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
-        && resource.data.className == get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className;
+      allow get: if isAdmin()
+        || (isAllowedSchoolGoogleUser()
+          && (request.auth.uid == userId
+            || (exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
+              && resource.data.className == get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className)));
+      allow list: if isAdmin()
+        || (isAllowedSchoolGoogleUser()
+          && exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
+          && resource.data.className == get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className);
       allow create: if isAllowedSchoolGoogleUser()
         && request.auth.uid == userId
+        && request.resource.data.email == request.auth.token.email
         && isValidProfile(userId);
       allow update: if isAllowedSchoolGoogleUser()
-        && request.auth.uid == userId
         && isValidProfile(userId)
-        && request.resource.data.email == resource.data.email
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && preservesProfileIdentity()
+        && ((isAdmin() && !isConfiguredAdminEmail(resource.data.email))
+          || (request.auth.uid == userId
+            && request.resource.data.email == request.auth.token.email
+            && ((isConfiguredAdminEmail(request.auth.token.email)
+                && request.resource.data.role == 'admin')
+              || (!isConfiguredAdminEmail(request.auth.token.email)
+                && request.resource.data.role == resource.data.role
+                && request.resource.data.className == resource.data.className))));
       allow delete: if false;
     }
 
     match /teacherslogClasses/{className} {
-      allow read, write: if isAllowedSchoolGoogleUser()
-        && exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
-        && get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className == className;
+      allow read, write: if isAdmin()
+        || (isAllowedSchoolGoogleUser()
+          && exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
+          && get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className == className);
     }
 
     match /{document=**} {

@@ -4,6 +4,7 @@ import { Header } from './components/Header'
 import { useFirebaseAuth } from './hooks/useFirebaseAuth'
 import { useTeachersLog } from './hooks/useTeachersLog'
 import { useUserProfile } from './hooks/useUserProfile'
+import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { ContactDetailPage } from './pages/ContactDetailPage'
 import { CreatePostPage } from './pages/CreatePostPage'
 import { FirebaseLoadingPage, FirebaseLoginPage } from './pages/FirebaseLoginPage'
@@ -21,7 +22,7 @@ export default function App() {
   const classProfiles = useMemo(() => user
     ? profileSession.profiles.filter((profile) => profile.className === user.className)
     : [], [profileSession.profiles, user])
-  const store = useTeachersLog(user, classProfiles)
+  const store = useTeachersLog(user?.role === 'admin' ? null : user, classProfiles)
   const [page, setPage] = useState<Page>('home')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const currentContact = store.contacts.find((contact) => contact.id === selectedId)
@@ -35,6 +36,13 @@ export default function App() {
   if (!firebaseSession.account) return <FirebaseLoginPage onLogin={firebaseSession.login} signingIn={firebaseSession.signingIn} error={firebaseSession.error} />
   if (profileSession.loading) return <FirebaseLoadingPage message="プロフィールを読み込んでいます…" />
   if (!user) return <ProfileSetupPage account={firebaseSession.account} saving={profileSession.saving} error={profileSession.error} onSave={profileSession.saveProfile} onLogout={firebaseSession.logout} />
+  if (user.role === 'admin') return (
+    <div className="app admin">
+      <Header user={user} unreadCount={0} onNotifications={() => undefined} onLogout={firebaseSession.logout} hideNotifications />
+      <AdminDashboardPage currentUser={user} profiles={profileSession.profiles} savingId={profileSession.adminSavingId} error={profileSession.error} onUpdate={profileSession.updateProfileAsAdmin} />
+      <footer className="app-footer"><span>TeachersLog Admin · {firebaseSession.account.email}</span></footer>
+    </div>
+  )
   if (store.cloudError && !store.cloudReady) return (
     <main className="cloud-error-page">
       <h1>TeachersLog</h1>

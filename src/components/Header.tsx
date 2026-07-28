@@ -6,9 +6,10 @@ interface Props {
   unreadCount: number
   onNotifications: () => void
   onLogout: () => void
+  hideNotifications?: boolean
 }
 
-export function Header({ user, unreadCount, onNotifications, onLogout }: Props) {
+export function Header({ user, unreadCount, onNotifications, onLogout, hideNotifications = false }: Props) {
   return (
     <header className={`app-header ${user.role}`}>
       <div className="header-inner">
@@ -17,16 +18,16 @@ export function Header({ user, unreadCount, onNotifications, onLogout }: Props) 
           <span><strong>TeachersLog</strong><small>みんなで確かめる学校連絡</small></span>
         </div>
         <div className="header-actions">
-          <button className="icon-button" onClick={onNotifications} aria-label={`通知 ${unreadCount}件`}>
+          {!hideNotifications && <button className="icon-button" onClick={onNotifications} aria-label={`通知 ${unreadCount}件`}>
             <Bell size={21} />
             {unreadCount > 0 && <span className="notification-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}
-          </button>
+          </button>}
           <button className="icon-button logout-button" onClick={onLogout} aria-label="Googleアカウントからログアウト" title="ログアウト">
             <LogOut size={19} />
           </button>
           <div className="user-switcher" aria-label={`${user.name}としてログイン中`}>
             <span className="user-avatar" style={{ background: user.avatarColor }}>{user.name.slice(0, 1)}</span>
-            <span className="user-name"><strong>{user.name}</strong><small>{user.role === 'student' ? '生徒' : '保護者'}</small></span>
+            <span className="user-name"><strong>{user.name}</strong><small>{user.role === 'student' ? '生徒' : user.role === 'parent' ? '保護者' : '管理者'}</small></span>
           </div>
         </div>
       </div>
