@@ -2,6 +2,8 @@
 
 TeachersLog は、先生から口頭で伝えられた学校連絡をクラスの生徒同士で確認し、伝達ミスや聞き間違いを減らすための Web アプリケーションです。
 
+公開デモ: <https://game-manager.github.io/Tea-Log/>
+
 ## 解決したい課題
 
 口頭連絡は、聞き漏らし・記憶違い・伝言時の抜けによって内容が変わることがあります。TeachersLog は、同じ連絡を聞いた複数の生徒による確認を集め、一定人数に達した連絡だけを保護者にも共有します。
@@ -32,6 +34,12 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+## GitHub Pagesへのデプロイ
+
+`agent/teacherslog-prototype` ブランチへプッシュすると、GitHub Actions が依存関係のインストール、ビルド、GitHub Pagesへの公開を自動実行します。
+
+公開URL: <https://game-manager.github.io/Tea-Log/>
 
 ## 使用技術
 
