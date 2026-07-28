@@ -64,7 +64,6 @@ npm run preview
 次の学校Googleアカウントは管理者として固定され、ログイン時に管理者ダッシュボードが開きます。
 
 - `saito.nozomu@ryugasaki1-h.ibk.ed.jp`
-- `horikoshi.kenta@ryugasaki1-h.ibk.ed.jp`
 - `kobayashi.takuto@ryugasaki1-h.ibk.ed.jp`
 
 管理者は登録ユーザーの検索・集計・一覧表示と、生徒／保護者区分、所属クラス、お子さまの氏名の変更ができます。管理者判定は画面表示だけでなくFirestore Security Rulesでも同じメールアドレスに限定しています。

@@ -1,6 +1,5 @@
 export const ADMIN_EMAILS = [
   'saito.nozomu@ryugasaki1-h.ibk.ed.jp',
-  'horikoshi.kenta@ryugasaki1-h.ibk.ed.jp',
   'kobayashi.takuto@ryugasaki1-h.ibk.ed.jp',
 ] as const
 

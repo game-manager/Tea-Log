@@ -12,7 +12,6 @@ service cloud.firestore {
     function isConfiguredAdminEmail(email) {
       return email in [
         'saito.nozomu@ryugasaki1-h.ibk.ed.jp',
-        'horikoshi.kenta@ryugasaki1-h.ibk.ed.jp',
         'kobayashi.takuto@ryugasaki1-h.ibk.ed.jp'
       ];
     }
@@ -62,14 +61,26 @@ service cloud.firestore {
       allow update: if isAllowedSchoolGoogleUser()
         && isValidProfile(userId)
         && preservesProfileIdentity()
-        && ((isAdmin() && !isConfiguredAdminEmail(resource.data.email))
-          || (request.auth.uid == userId
+        && (
+          (isAdmin() && !isConfiguredAdminEmail(resource.data.email))
+          || (
+            request.auth.uid == userId
             && request.resource.data.email == request.auth.token.email
-            && ((isConfiguredAdminEmail(request.auth.token.email)
+            && (
+              (isConfiguredAdminEmail(request.auth.token.email)
                 && request.resource.data.role == 'admin')
-              || (!isConfiguredAdminEmail(request.auth.token.email)
-                && request.resource.data.role == resource.data.role
-                && request.resource.data.className == resource.data.className))));
+              || (
+                !isConfiguredAdminEmail(request.auth.token.email)
+                && (
+                  (request.resource.data.role == resource.data.role
+                    && request.resource.data.className == resource.data.className)
+                  || (resource.data.role == 'admin'
+                    && request.resource.data.role in ['student', 'parent'])
+                )
+              )
+            )
+          )
+        );
       allow delete: if false;
     }
 

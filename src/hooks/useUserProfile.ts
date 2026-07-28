@@ -79,7 +79,11 @@ export function useUserProfile(account: FirebaseUser | null) {
     return unsubscribeProfile
   }, [account])
 
-  const currentProfile = account && profile?.id === account.uid ? profile : null
+  const currentProfile = account
+    && profile?.id === account.uid
+    && (profile.role !== 'admin' || isAdminEmail(account.email))
+    ? profile
+    : null
 
   useEffect(() => {
     if (!currentProfile) return
@@ -107,7 +111,7 @@ export function useUserProfile(account: FirebaseUser | null) {
       avatarColor: colorForUid(account.uid),
       ...(!adminAccount && input.role === 'parent' ? { childName: input.childName.trim() } : {}),
       ...(account.photoURL ? { photoUrl: account.photoURL } : {}),
-      createdAt: now,
+      createdAt: profile?.id === account.uid ? profile.createdAt : now,
       updatedAt: now,
     }
     try {
@@ -120,7 +124,7 @@ export function useUserProfile(account: FirebaseUser | null) {
     } finally {
       setSaving(false)
     }
-  }, [account])
+  }, [account, profile])
 
   const updateProfileAsAdmin = useCallback(async (userId: string, input: AdminProfileUpdate) => {
     if (!isAdminEmail(account?.email)) throw new Error('admin account required')
