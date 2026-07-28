@@ -5,20 +5,26 @@ export type Page = 'home' | 'create' | 'history' | 'notifications' | 'detail'
 
 export interface User {
   id: string
+  email: string
   name: string
   role: UserRole
   className: string
   avatarColor: string
   childName?: string
+  photoUrl?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Confirmation {
   studentId: string
   confirmedAt: string
+  studentName?: string
 }
 
 export interface Contact {
   id: string
+  className: string
   category: Category
   title: string
   content: string

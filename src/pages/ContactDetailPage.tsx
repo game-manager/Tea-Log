@@ -2,7 +2,6 @@ import { ArrowLeft, CalendarDays, Check, CheckCircle2, Clock3, FileText, Trash2,
 import { useState } from 'react'
 import { SafetyNotice } from '../components/SafetyNotice'
 import { StatusBadge } from '../components/StatusBadge'
-import { students } from '../data/seed'
 import type { Contact, User } from '../types'
 import { formatDate, formatDateTime } from '../utils/date'
 import { getStatus } from '../utils/status'
@@ -10,13 +9,14 @@ import { getStatus } from '../utils/status'
 interface Props {
   contact: Contact
   user: User
+  profiles: User[]
   onBack: () => void
   onConfirm: () => boolean
   onRead: () => void
   onDelete: () => void
 }
 
-export function ContactDetailPage({ contact, user, onBack, onConfirm, onRead, onDelete }: Props) {
+export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, onRead, onDelete }: Props) {
   const status = getStatus(contact)
   const isParent = user.role === 'parent'
   const hasConfirmed = contact.confirmations.some((item) => item.studentId === user.id)
@@ -24,7 +24,7 @@ export function ContactDetailPage({ contact, user, onBack, onConfirm, onRead, on
   const [message, setMessage] = useState('')
   const confirmedStudents = contact.confirmations.map((confirmation) => ({
     ...confirmation,
-    name: students.find((student) => student.id === confirmation.studentId)?.name ?? '生徒',
+    name: confirmation.studentName ?? profiles.find((profile) => profile.id === confirmation.studentId)?.name ?? '生徒',
   }))
 
   const handleConfirm = () => {
@@ -66,7 +66,7 @@ export function ContactDetailPage({ contact, user, onBack, onConfirm, onRead, on
               {confirmedStudents.map((student) => (
                 <div key={student.studentId}><span className="mini-avatar">{student.name.slice(0, 1)}</span><span><strong>{student.name}</strong><small>{formatDateTime(student.confirmedAt)} 確認</small></span><CheckCircle2 size={18} /></div>
               ))}
-              <div className="remaining-row"><UsersRound size={18} />まだ確認していない生徒：{contact.totalStudents - contact.confirmations.length}人</div>
+              <div className="remaining-row"><UsersRound size={18} />まだ確認していない生徒：{Math.max(0, contact.totalStudents - contact.confirmations.length)}人</div>
             </div>
           )}
         </section>

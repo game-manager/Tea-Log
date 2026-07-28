@@ -1,16 +1,14 @@
-import { Bell, BookOpenCheck, ChevronDown, LogOut } from 'lucide-react'
+import { Bell, BookOpenCheck, LogOut } from 'lucide-react'
 import type { User } from '../types'
 
 interface Props {
   user: User
-  users: User[]
   unreadCount: number
-  onUserChange: (user: User) => void
   onNotifications: () => void
   onLogout: () => void
 }
 
-export function Header({ user, users, unreadCount, onUserChange, onNotifications, onLogout }: Props) {
+export function Header({ user, unreadCount, onNotifications, onLogout }: Props) {
   return (
     <header className={`app-header ${user.role}`}>
       <div className="header-inner">
@@ -26,17 +24,10 @@ export function Header({ user, users, unreadCount, onUserChange, onNotifications
           <button className="icon-button logout-button" onClick={onLogout} aria-label="Googleアカウントからログアウト" title="ログアウト">
             <LogOut size={19} />
           </button>
-          <label className="user-switcher">
+          <div className="user-switcher" aria-label={`${user.name}としてログイン中`}>
             <span className="user-avatar" style={{ background: user.avatarColor }}>{user.name.slice(0, 1)}</span>
             <span className="user-name"><strong>{user.name}</strong><small>{user.role === 'student' ? '生徒' : '保護者'}</small></span>
-            <select value={user.id} onChange={(event) => {
-              const next = users.find((item) => item.id === event.target.value)
-              if (next) onUserChange(next)
-            }} aria-label="デモユーザーを切り替える">
-              {users.map((item) => <option key={item.id} value={item.id}>{item.name}（{item.role === 'student' ? '生徒' : '保護者'}）</option>)}
-            </select>
-            <ChevronDown size={16} aria-hidden="true" />
-          </label>
+          </div>
         </div>
       </div>
     </header>

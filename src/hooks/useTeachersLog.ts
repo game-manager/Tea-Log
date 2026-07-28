@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { parents, seedData } from '../data/seed'
+import { seedData } from '../data/seed'
 import { firestore } from '../lib/firebase'
 import type { AppData, Category, Contact, User } from '../types'
 
-const STORAGE_KEY = 'teacherslog:data:v1'
+const EMPTY_DATA: AppData = { contacts: [], notifications: [] }
 
-const loadData = (): AppData => {
+const storageKey = (className: string) => `teacherslog:data:v2:${className}`
+
+const initialDataForClass = (className: string): AppData => ({
+  contacts: seedData.contacts.map((contact) => ({ ...contact, className, parentReadBy: {} })),
+  notifications: [],
+})
+
+const loadData = (className: string): AppData => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) as AppData : seedData
+    const stored = localStorage.getItem(storageKey(className))
+    return stored ? JSON.parse(stored) as AppData : initialDataForClass(className)
   } catch {
-    return seedData
+    return initialDataForClass(className)
   }
 }
 
@@ -23,65 +30,69 @@ export interface NewContactInput {
   memo: string
 }
 
-export const useTeachersLog = (cloudEnabled: boolean) => {
-  const [data, setData] = useState<AppData>(loadData)
+export const useTeachersLog = (user: User | null, classProfiles: User[]) => {
+  const [data, setData] = useState<AppData>(EMPTY_DATA)
   const storageError = false
-  const [cloudReady, setCloudReady] = useState(false)
-  const [cloudError, setCloudError] = useState('')
+  const [connection, setConnection] = useState({ className: '', ready: false, error: '' })
   const remoteUpdate = useRef(false)
+  const cloudReady = Boolean(user && connection.className === user.className && connection.ready)
+  const cloudError = user && connection.className === user.className ? connection.error : ''
 
   useEffect(() => {
-    if (!cloudEnabled) return
-    const appDataRef = doc(firestore, 'teacherslog', 'appData')
+    if (!user) return
+    const appDataRef = doc(firestore, 'teacherslogClasses', user.className)
     return onSnapshot(appDataRef, (snapshot) => {
       if (snapshot.exists()) {
         remoteUpdate.current = true
         setData(snapshot.data() as AppData)
-        setCloudReady(true)
-        setCloudError('')
+        setConnection({ className: user.className, ready: true, error: '' })
       } else {
-        setDoc(appDataRef, seedData)
-          .then(() => setCloudReady(true))
-          .catch(() => setCloudError('クラウドデータの初期化に失敗しました。'))
+        const initialData = loadData(user.className)
+        setData(initialData)
+        setDoc(appDataRef, initialData)
+          .then(() => setConnection({ className: user.className, ready: true, error: '' }))
+          .catch(() => setConnection({ className: user.className, ready: false, error: 'クラウドデータの初期化に失敗しました。' }))
       }
     }, () => {
-      setCloudError('Firestoreに接続できません。権限またはネットワークをご確認ください。')
+      setConnection({ className: user.className, ready: false, error: 'Firestoreに接続できません。権限またはネットワークをご確認ください。' })
     })
-  }, [cloudEnabled])
+  }, [user])
 
   useEffect(() => {
+    if (!user) return
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      localStorage.setItem(storageKey(user.className), JSON.stringify(data))
     } catch {
       console.warn('TeachersLog could not persist data to localStorage.')
     }
-  }, [data])
+  }, [data, user])
 
   useEffect(() => {
-    if (!cloudEnabled || !cloudReady) return
+    if (!user || !cloudReady) return
     if (remoteUpdate.current) {
       remoteUpdate.current = false
       return
     }
-    setDoc(doc(firestore, 'teacherslog', 'appData'), data)
+    setDoc(doc(firestore, 'teacherslogClasses', user.className), data)
       .catch(() => console.warn('TeachersLog could not sync data to Firestore.'))
-  }, [cloudEnabled, cloudReady, data])
+  }, [cloudReady, data, user])
 
   useEffect(() => {
     const sync = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY && event.newValue) {
+      if (user && event.key === storageKey(user.className) && event.newValue) {
         try { setData(JSON.parse(event.newValue) as AppData) } catch { /* keep current state */ }
       }
     }
     window.addEventListener('storage', sync)
     return () => window.removeEventListener('storage', sync)
-  }, [])
+  }, [user])
 
   const createContact = useCallback((input: NewContactInput, user: User) => {
     const now = new Date().toISOString()
     const contact: Contact = {
       id: crypto.randomUUID(),
       ...input,
+      className: user.className,
       title: input.title.trim(),
       content: input.content.trim(),
       memo: input.memo.trim(),
@@ -90,21 +101,21 @@ export const useTeachersLog = (cloudEnabled: boolean) => {
       authorName: user.name,
       confirmations: [],
       requiredConfirmations: 3,
-      totalStudents: 5,
+      totalStudents: Math.max(5, classProfiles.filter((profile) => profile.role === 'student').length),
       parentReadBy: {},
     }
     setData((current) => ({
       contacts: [contact, ...current.contacts],
       notifications: [
         ...current.notifications,
-        ...['s1', 's2', 's3', 's4', 's5'].filter((id) => id !== user.id).map((userId) => ({
-          id: crypto.randomUUID(), userId, title: '新しい確認待ちの連絡があります',
+        ...classProfiles.filter((profile) => profile.role === 'student' && profile.id !== user.id).map((profile) => ({
+          id: crypto.randomUUID(), userId: profile.id, title: '新しい確認待ちの連絡があります',
           body: `「${contact.title}」の内容を確認してください。`, createdAt: now, read: false, contactId: contact.id,
         })),
       ],
     }))
     return contact.id
-  }, [])
+  }, [classProfiles])
 
   const confirmContact = useCallback((contactId: string, user: User) => {
     const now = new Date().toISOString()
@@ -112,7 +123,7 @@ export const useTeachersLog = (cloudEnabled: boolean) => {
     setData((current) => {
       const target = current.contacts.find((contact) => contact.id === contactId)
       if (!target || target.confirmations.some((item) => item.studentId === user.id) || target.confirmedAt) return current
-      const confirmations = [...target.confirmations, { studentId: user.id, confirmedAt: now }]
+      const confirmations = [...target.confirmations, { studentId: user.id, studentName: user.name, confirmedAt: now }]
       becameConfirmed = confirmations.length >= target.requiredConfirmations
       const contacts = current.contacts.map((contact) => contact.id === contactId
         ? { ...contact, confirmations, ...(becameConfirmed ? { confirmedAt: now } : {}) }
@@ -122,7 +133,7 @@ export const useTeachersLog = (cloudEnabled: boolean) => {
           id: crypto.randomUUID(), userId: target.authorId, title: '投稿した連絡が確認済みになりました',
           body: `「${target.title}」がクラス確認済みになりました。`, createdAt: now, read: false, contactId,
         },
-        ...parents.map((parent) => ({
+        ...classProfiles.filter((profile) => profile.role === 'parent').map((parent) => ({
           id: crypto.randomUUID(), userId: parent.id, title: '確認済みの学校連絡が届きました',
           body: `「${target.title}」が共有されました。`, createdAt: now, read: false, contactId,
         })),
@@ -130,7 +141,7 @@ export const useTeachersLog = (cloudEnabled: boolean) => {
       return { contacts, notifications: [...newNotifications, ...current.notifications] }
     })
     return becameConfirmed
-  }, [])
+  }, [classProfiles])
 
   const markParentRead = useCallback((contactId: string, userId: string) => {
     const now = new Date().toISOString()
@@ -163,8 +174,6 @@ export const useTeachersLog = (cloudEnabled: boolean) => {
     }))
   }, [])
 
-  const resetDemo = useCallback(() => setData(seedData), [])
-
   return {
     contacts: data.contacts,
     notifications: data.notifications,
@@ -177,6 +186,5 @@ export const useTeachersLog = (cloudEnabled: boolean) => {
     markNotificationRead,
     markAllNotificationsRead,
     deleteContact,
-    resetDemo,
   }
 }

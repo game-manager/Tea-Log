@@ -19,7 +19,7 @@ export function ParentHomePage({ user, contacts, onOpen }: { user: User; contact
   return (
     <div className="page-shell parent-shell">
       <section className="page-heading home-heading">
-        <div><span className="eyebrow">{user.className}</span><h1>学校からの連絡</h1><p>{user.childName}さんのクラスで確認された連絡です。</p></div>
+        <div><span className="eyebrow">{user.className}</span><h1>学校からの連絡</h1><p>{user.childName ? `${user.childName}さんの` : ''}クラスで確認された連絡です。</p></div>
       </section>
       {unreadCount > 0 && <section className="summary-strip parent-summary"><MailCheck size={20} /><div><strong>未読の連絡が{unreadCount}件あります</strong><span>内容を確認して閲覧済みにしましょう</span></div></section>}
       <div className="tabs parent-tabs" role="tablist">

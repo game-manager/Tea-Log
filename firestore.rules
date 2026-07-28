@@ -9,8 +9,43 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_provider == 'google.com';
     }
 
-    match /teacherslog/{document=**} {
-      allow read, write: if isAllowedSchoolGoogleUser();
+    function isValidProfile(userId) {
+      return request.resource.data.keys().hasAll(['id', 'email', 'name', 'role', 'className', 'avatarColor', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['id', 'email', 'name', 'role', 'className', 'avatarColor', 'childName', 'photoUrl', 'createdAt', 'updatedAt'])
+        && request.resource.data.id == userId
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.role in ['student', 'parent']
+        && request.resource.data.className is string
+        && request.resource.data.className.matches('^[1-3]年([1-9]|10)組$');
+    }
+
+    match /teacherslogProfiles/{userId} {
+      allow get: if isAllowedSchoolGoogleUser()
+        && (request.auth.uid == userId
+          || (exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
+            && resource.data.className == get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className));
+      allow list: if isAllowedSchoolGoogleUser()
+        && exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
+        && resource.data.className == get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className;
+      allow create: if isAllowedSchoolGoogleUser()
+        && request.auth.uid == userId
+        && isValidProfile(userId);
+      allow update: if isAllowedSchoolGoogleUser()
+        && request.auth.uid == userId
+        && isValidProfile(userId)
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    match /teacherslogClasses/{className} {
+      allow read, write: if isAllowedSchoolGoogleUser()
+        && exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className == className;
     }
 
     match /{document=**} {
