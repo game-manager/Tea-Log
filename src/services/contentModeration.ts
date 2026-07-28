@@ -5,9 +5,11 @@ import {
   HarmBlockThreshold,
   HarmCategory,
   Schema,
+  ThinkingLevel,
 } from 'firebase/ai'
+import { getIdToken } from 'firebase/auth'
 import type { NewContactInput } from '../hooks/useTeachersLog'
-import { firebaseApp } from '../lib/firebase'
+import { firebaseApp, firebaseAuth } from '../lib/firebase'
 
 export type ModerationCategory =
   | 'safe'
@@ -24,6 +26,25 @@ export interface ModerationResult {
   allowed: boolean
   category: ModerationCategory
   reason: string
+}
+
+type ErrorWithDetails = {
+  code?: unknown
+  message?: unknown
+  customErrorData?: {
+    status?: unknown
+    statusText?: unknown
+  }
+}
+
+export class ContentModerationError extends Error {
+  readonly diagnosticCode: string
+
+  constructor(message: string, diagnosticCode: string) {
+    super(message)
+    this.name = 'ContentModerationError'
+    this.diagnosticCode = diagnosticCode
+  }
 }
 
 const responseSchema = Schema.object({
@@ -54,7 +75,10 @@ const moderationModel = getGenerativeModel(ai, {
     responseMimeType: 'application/json',
     responseSchema,
     temperature: 0,
-    maxOutputTokens: 180,
+    // Gemini 3 models use output tokens for thinking as well. A very small
+    // limit can finish before the structured JSON is returned.
+    maxOutputTokens: 512,
+    thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
   },
   safetySettings: [
     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE },
@@ -69,11 +93,21 @@ const categories = new Set<ModerationCategory>([
 ])
 
 function parseModerationResult(text: string): ModerationResult {
-  const value: unknown = JSON.parse(text)
-  if (!value || typeof value !== 'object') throw new Error('invalid moderation response')
+  let value: unknown
+  try {
+    value = JSON.parse(text)
+  } catch {
+    throw new ContentModerationError(
+      'Geminiの判定結果を読み取れませんでした。もう一度お試しください。',
+      'INVALID_RESPONSE',
+    )
+  }
+  if (!value || typeof value !== 'object') {
+    throw new ContentModerationError('Geminiの判定結果を読み取れませんでした。もう一度お試しください。', 'INVALID_RESPONSE')
+  }
   const candidate = value as Partial<ModerationResult>
   if (typeof candidate.allowed !== 'boolean' || typeof candidate.reason !== 'string' || !categories.has(candidate.category as ModerationCategory)) {
-    throw new Error('invalid moderation response')
+    throw new ContentModerationError('Geminiの判定結果を読み取れませんでした。もう一度お試しください。', 'INVALID_RESPONSE')
   }
   return {
     allowed: candidate.allowed,
@@ -82,13 +116,53 @@ function parseModerationResult(text: string): ModerationResult {
   }
 }
 
-export async function moderateContact(input: NewContactInput): Promise<ModerationResult> {
-  const payload = JSON.stringify({
-    category: input.category,
-    title: input.title.trim(),
-    content: input.content.trim(),
-    memo: input.memo?.trim() || '',
-  })
+function errorDetails(error: unknown) {
+  const value = (error && typeof error === 'object' ? error : {}) as ErrorWithDetails
+  return {
+    code: typeof value.code === 'string' ? value.code.toLowerCase() : '',
+    message: typeof value.message === 'string' ? value.message.toLowerCase() : '',
+    status: typeof value.customErrorData?.status === 'number' ? value.customErrorData.status : undefined,
+  }
+}
+
+function isAuthError(error: unknown) {
+  const { code, message, status } = errorDetails(error)
+  return status === 401 || code.startsWith('auth/') || code.includes('unauthenticated')
+    || message.includes('unauthenticated') || message.includes('[401')
+}
+
+function isRetryableError(error: unknown) {
+  const { code, message, status } = errorDetails(error)
+  return status === 408 || status === 429 || (status !== undefined && status >= 500)
+    || code.includes('network') || code.includes('timeout')
+    || message.includes('network') || message.includes('timeout') || message.includes('failed to fetch')
+}
+
+export function getModerationErrorMessage(error: unknown) {
+  if (error instanceof ContentModerationError) {
+    return `${error.message}（${error.diagnosticCode}）`
+  }
+
+  const { code, message, status } = errorDetails(error)
+  if (isAuthError(error)) {
+    return 'ログイン情報を確認できませんでした。ページを再読み込みし、もう一度ログインしてください。（AUTH_REQUIRED）'
+  }
+  if (status === 403 || code.includes('permission-denied') || code.includes('appcheck') || message.includes('app check')) {
+    return 'この端末の安全性確認に失敗しました。ページを再読み込みして、もう一度お試しください。（APP_CHECK）'
+  }
+  if (status === 429 || code.includes('resource-exhausted')) {
+    return '現在AIの利用が集中しています。少し時間をおいて、もう一度お試しください。（RATE_LIMIT）'
+  }
+  if (status === 404 || code.includes('not-found')) {
+    return '現在Geminiの判定機能を利用できません。管理者にお知らせください。（MODEL_NOT_FOUND）'
+  }
+  if (code.includes('response-error') || message.includes('max_tokens')) {
+    return 'Geminiの判定結果を読み取れませんでした。もう一度お試しください。（INVALID_RESPONSE）'
+  }
+  return 'Geminiによる内容確認を完了できませんでした。通信環境を確認して、もう一度お試しください。（AI_UNAVAILABLE）'
+}
+
+async function requestModeration(payload: string): Promise<ModerationResult> {
   const result = await moderationModel.generateContent(`次のJSONデータを審査してください。\n<submission>${payload}</submission>`)
 
   if (result.response.promptFeedback?.blockReason) {
@@ -100,4 +174,30 @@ export async function moderateContact(input: NewContactInput): Promise<Moderatio
   }
 
   return parseModerationResult(result.response.text())
+}
+
+export async function moderateContact(input: NewContactInput): Promise<ModerationResult> {
+  if (!firebaseAuth.currentUser) {
+    throw new ContentModerationError('ログイン情報を確認できませんでした。ページを再読み込みし、もう一度ログインしてください。', 'AUTH_REQUIRED')
+  }
+
+  const payload = JSON.stringify({
+    category: input.category,
+    title: input.title.trim(),
+    content: input.content.trim(),
+    memo: input.memo?.trim() || '',
+  })
+
+  try {
+    return await requestModeration(payload)
+  } catch (firstError) {
+    if (isAuthError(firstError) && firebaseAuth.currentUser) {
+      await getIdToken(firebaseAuth.currentUser, true)
+      return requestModeration(payload)
+    }
+    if (isRetryableError(firstError)) {
+      return requestModeration(payload)
+    }
+    throw firstError
+  }
 }

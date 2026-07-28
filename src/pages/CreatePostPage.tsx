@@ -37,10 +37,11 @@ export function CreatePostPage({ onBack, onSubmit }: { onBack: () => void; onSub
         return
       }
       await onSubmit(form)
-    } catch {
+    } catch (error) {
+      const { getModerationErrorMessage } = await import('../services/contentModeration')
       setModerationNotice({
         tone: 'error',
-        message: 'Geminiによる内容確認を完了できませんでした。通信環境を確認して、もう一度お試しください。',
+        message: getModerationErrorMessage(error),
       })
     } finally {
       setIsChecking(false)
