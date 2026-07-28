@@ -60,7 +60,10 @@ const responseSchema = Schema.object({
 
 const ai = getAI(firebaseApp, {
   backend: new GoogleAIBackend(),
-  useLimitedUseAppCheckTokens: true,
+  // Replay protection is not enabled for this Firebase AI service. Use the
+  // regular auto-refreshed token so reCAPTCHA Enterprise does not have to
+  // mint a new limited-use token for every submission.
+  useLimitedUseAppCheckTokens: false,
 })
 
 const moderationModel = getGenerativeModel(ai, {
