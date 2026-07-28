@@ -1,4 +1,4 @@
-import { GraduationCap, Save, Search, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
+import { ArrowRight, Eye, GraduationCap, Save, Search, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { isAdminEmail } from '../config/admins'
 import { SCHOOL_CLASSES } from '../config/classes'
@@ -13,6 +13,7 @@ interface Props {
   savingId: string
   error: string
   onUpdate: (userId: string, input: AdminProfileUpdate) => Promise<void>
+  onOpenClass: (mode: 'student' | 'parent', className: string) => void
 }
 
 function roleLabel(role: User['role']) {
@@ -65,9 +66,10 @@ function UserEditor({ profile, saving, onUpdate }: {
   )
 }
 
-export function AdminDashboardPage({ currentUser, profiles, savingId, error, onUpdate }: Props) {
+export function AdminDashboardPage({ currentUser, profiles, savingId, error, onUpdate, onOpenClass }: Props) {
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<FilterRole>('all')
+  const [quickClass, setQuickClass] = useState('2年3組')
   const sortedProfiles = useMemo(() => [...profiles].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [profiles])
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -81,6 +83,15 @@ export function AdminDashboardPage({ currentUser, profiles, savingId, error, onU
   const parentCount = profiles.filter((profile) => profile.role === 'parent').length
   const adminCount = profiles.filter((profile) => isAdminEmail(profile.email)).length
   const classCount = new Set(profiles.filter((profile) => profile.role !== 'admin').map((profile) => profile.className)).size
+  const classSummaries = useMemo(() => SCHOOL_CLASSES.map((className) => {
+    const classUsers = profiles.filter((profile) => profile.className === className)
+    return {
+      className,
+      students: classUsers.filter((profile) => profile.role === 'student').length,
+      parents: classUsers.filter((profile) => profile.role === 'parent').length,
+      total: classUsers.length,
+    }
+  }).filter((summary) => summary.total > 0), [profiles])
 
   return (
     <main className="admin-dashboard">
@@ -93,6 +104,21 @@ export function AdminDashboardPage({ currentUser, profiles, savingId, error, onU
         <div><GraduationCap /><span>生徒<strong>{studentCount}</strong></span></div>
         <div><UserRound /><span>保護者<strong>{parentCount}</strong></span></div>
         <div><ShieldCheck /><span>管理者 / クラス<strong>{adminCount} / {classCount}</strong></span></div>
+      </section>
+      <section className="admin-class-section">
+        <div className="admin-section-heading"><div><h2>クラス運用</h2><p>管理者のまま対象クラスの投稿・確認・履歴・保護者画面を利用できます。</p></div></div>
+        <div className="admin-quick-launch">
+          <label>対象クラス<select value={quickClass} onChange={(event) => setQuickClass(event.target.value)}>{SCHOOL_CLASSES.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <button type="button" onClick={() => onOpenClass('student', quickClass)}><GraduationCap size={16} /><span><strong>生徒画面を開く</strong><small>投稿・確認・履歴・通知</small></span><ArrowRight size={16} /></button>
+          <button type="button" onClick={() => onOpenClass('parent', quickClass)}><Eye size={16} /><span><strong>保護者画面を開く</strong><small>確認済み連絡・閲覧管理</small></span><ArrowRight size={16} /></button>
+        </div>
+        {classSummaries.length > 0 ? <div className="admin-class-grid">
+          {classSummaries.map((summary) => <article key={summary.className}>
+            <div><strong>{summary.className}</strong><span>{summary.total}人登録</span></div>
+            <dl><div><dt>生徒</dt><dd>{summary.students}</dd></div><div><dt>保護者</dt><dd>{summary.parents}</dd></div></dl>
+            <button type="button" onClick={() => onOpenClass('student', summary.className)}>クラスを開く<ArrowRight size={14} /></button>
+          </article>)}
+        </div> : <p className="admin-class-empty">登録済みクラスはまだありません。上の対象クラスを選んで運用画面を開けます。</p>}
       </section>
       <section className="admin-users-section">
         <div className="admin-section-heading"><div><h2>ユーザー管理</h2><p>利用区分や所属クラスの変更は保存後すぐに反映されます。</p></div><span>{filtered.length}件</span></div>

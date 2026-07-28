@@ -7,9 +7,10 @@ interface Props {
   onNotifications: () => void
   onLogout: () => void
   hideNotifications?: boolean
+  adminAccess?: boolean
 }
 
-export function Header({ user, unreadCount, onNotifications, onLogout, hideNotifications = false }: Props) {
+export function Header({ user, unreadCount, onNotifications, onLogout, hideNotifications = false, adminAccess = false }: Props) {
   return (
     <header className={`app-header ${user.role}`}>
       <div className="header-inner">
@@ -27,7 +28,7 @@ export function Header({ user, unreadCount, onNotifications, onLogout, hideNotif
           </button>
           <div className="user-switcher" aria-label={`${user.name}としてログイン中`}>
             <span className="user-avatar" style={{ background: user.avatarColor }}>{user.name.slice(0, 1)}</span>
-            <span className="user-name"><strong>{user.name}</strong><small>{user.role === 'student' ? '生徒' : user.role === 'parent' ? '保護者' : '管理者'}</small></span>
+            <span className="user-name"><strong>{user.name}</strong><small>{adminAccess && user.role !== 'admin' ? `管理者 · ${user.role === 'student' ? '生徒表示' : '保護者表示'}` : user.role === 'student' ? '生徒' : user.role === 'parent' ? '保護者' : '管理者'}</small></span>
           </div>
         </div>
       </div>

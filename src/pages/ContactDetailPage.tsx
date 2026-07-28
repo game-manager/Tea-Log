@@ -14,9 +14,10 @@ interface Props {
   onConfirm: () => boolean
   onRead: () => void
   onDelete: () => void
+  canModerate?: boolean
 }
 
-export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, onRead, onDelete }: Props) {
+export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, onRead, onDelete, canModerate = false }: Props) {
   const status = getStatus(contact)
   const isParent = user.role === 'parent'
   const hasConfirmed = contact.confirmations.some((item) => item.studentId === user.id)
@@ -42,7 +43,7 @@ export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, 
       <article className={`detail-card ${isParent ? 'parent' : ''}`}>
         <div className="detail-topline">
           <div className="badge-row"><StatusBadge status={status} parent={isParent} /><span className="category-badge">{contact.category}</span></div>
-          {!isParent && contact.authorId === user.id && <button className="delete-button" onClick={handleDelete} aria-label="連絡を削除"><Trash2 size={18} />削除</button>}
+          {((!isParent && contact.authorId === user.id) || canModerate) && <button className="delete-button" onClick={handleDelete} aria-label="連絡を削除"><Trash2 size={18} />{canModerate && contact.authorId !== user.id ? '管理者として削除' : '削除'}</button>}
         </div>
         <h1>{contact.title}</h1>
         <p className="detail-content">{contact.content}</p>

@@ -167,9 +167,9 @@ export const useTeachersLog = (user: User | null, classProfiles: User[]) => {
     }))
   }, [])
 
-  const deleteContact = useCallback((contactId: string, user: User) => {
+  const deleteContact = useCallback((contactId: string, user: User, adminOverride = false) => {
     setData((current) => ({
-      contacts: current.contacts.filter((contact) => !(contact.id === contactId && contact.authorId === user.id)),
+      contacts: current.contacts.filter((contact) => !(contact.id === contactId && (adminOverride || contact.authorId === user.id))),
       notifications: current.notifications.filter((notification) => notification.contactId !== contactId),
     }))
   }, [])

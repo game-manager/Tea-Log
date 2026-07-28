@@ -66,7 +66,7 @@ npm run preview
 - `saito.nozomu@ryugasaki1-h.ibk.ed.jp`
 - `kobayashi.takuto@ryugasaki1-h.ibk.ed.jp`
 
-管理者は登録ユーザーの検索・集計・一覧表示と、生徒／保護者区分、所属クラス、お子さまの氏名の変更ができます。管理者判定は画面表示だけでなくFirestore Security Rulesでも同じメールアドレスに限定しています。
+管理者は登録ユーザーの検索・集計・一覧表示と、生徒／保護者区分、所属クラス、お子さまの氏名の変更ができます。さらに対象クラスと表示モードを切り替え、生徒画面での投稿・確認・履歴・通知、保護者画面での確認済み連絡・閲覧管理、管理者権限での不適切な連絡削除を行えます。管理者判定は画面表示だけでなくFirestore Security Rulesでも同じメールアドレスに限定しています。
 
 ## 主な機能
 
@@ -85,6 +85,7 @@ npm run preview
 - 学校ドメイン限定のGoogle認証
 - クライアント検証とFirestore Security Rulesによる二重のアクセス制御
 - 指定アカウント限定の管理者ダッシュボードとユーザー管理
+- 管理者によるクラス切り替え、生徒／保護者画面の利用、連絡モデレーション
 - App CheckとFirebase Authenticationで保護されたGemini API呼び出し
 - スマートフォンを優先したレスポンシブ UI
 - 描画エラー時のフォールバック画面
