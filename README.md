@@ -51,6 +51,8 @@ npm run preview
 - Lucide React
 - Firebase Authentication
 - Cloud Firestore
+- Firebase AI Logic（Gemini Developer API）
+- Firebase App Check（reCAPTCHA Enterprise）
 - localStorage（オフライン時の端末キャッシュ）
 
 ## デモユーザー
@@ -74,6 +76,7 @@ npm run preview
 
 - 状態別（未確認・確認中・確認済み）の生徒向け連絡一覧
 - 入力チェック付きの新規連絡投稿
+- Geminiによる投稿前の不適切コンテンツ判定
 - 生徒ごとに一度だけ行える内容確認
 - 必要人数到達時の自動的な確認済み化と確認日時の保存
 - 確認済み連絡だけを表示する保護者画面
@@ -85,6 +88,7 @@ npm run preview
 - localStorageによる端末キャッシュ
 - 学校ドメイン限定のGoogle認証
 - クライアント検証とFirestore Security Rulesによる二重のアクセス制御
+- App CheckとFirebase Authenticationで保護されたGemini API呼び出し
 - スマートフォンを優先したレスポンシブ UI
 - 描画エラー時のフォールバック画面
 

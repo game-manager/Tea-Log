@@ -127,6 +127,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .form-note strong { font-size: 12px; }
 .form-note p { margin: 4px 0 0; color: #60756b; font-size: 11px; line-height: 1.6; }
 .submit-button { width: 100%; }
+.ai-moderation-note, .moderation-result { display: flex; gap: 11px; margin: 3px 0 16px; padding: 14px 15px; border-radius: 11px; }
+.ai-moderation-note { color: #305f4a; background: #f1f8f4; border: 1px solid #d9eade; }
+.ai-moderation-note > svg, .moderation-result > svg { flex: 0 0 auto; margin-top: 1px; }
+.ai-moderation-note strong, .moderation-result strong { display: block; font-size: 12px; }
+.ai-moderation-note p, .moderation-result p { margin: 4px 0 0; font-size: 11px; line-height: 1.65; }
+.ai-moderation-note p { color: #60786c; }
+.moderation-result { color: #8c342d; background: #fff4f2; border: 1px solid #f1d3cf; }
+.moderation-result.error { color: #78531d; background: #fff9ec; border-color: #eedcae; }
+.primary-button:disabled, .back-button:disabled { cursor: wait; opacity: .66; }
+.spin { animation: spin .85s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .detail-page { max-width: 780px; padding-bottom: 100px; }
 .detail-card { padding: 31px; }
