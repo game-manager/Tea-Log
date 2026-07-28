@@ -19,9 +19,9 @@ export function ParentHomePage({ user, contacts, onOpen }: { user: User; contact
   return (
     <div className="page-shell parent-shell">
       <section className="page-heading home-heading">
-        <div><span className="eyebrow">{user.className}</span><h1>学校からの連絡</h1><p>{user.childName ? `${user.childName}さんの` : ''}クラスで確認された連絡です。</p></div>
+        <div><span className="eyebrow">{user.className}</span><h1>先生の発言</h1><p>{user.childName ? `${user.childName}さんの` : ''}クラスで確認された発言です。</p></div>
       </section>
-      {unreadCount > 0 && <section className="summary-strip parent-summary"><MailCheck size={20} /><div><strong>未読の連絡が{unreadCount}件あります</strong><span>内容を確認して閲覧済みにしましょう</span></div></section>}
+      {unreadCount > 0 && <section className="summary-strip parent-summary"><MailCheck size={20} /><div><strong>未読の発言が{unreadCount}件あります</strong><span>内容を確認して閲覧済みにしましょう</span></div></section>}
       <div className="tabs parent-tabs" role="tablist">
         {([['all', 'すべて'], ['unread', '未読'], ['read', '確認済み']] as const).map(([value, label]) => (
           <button key={value} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}>{label}<span>{value === 'all' ? confirmed.length : value === 'unread' ? unreadCount : confirmed.length - unreadCount}</span></button>
@@ -30,7 +30,7 @@ export function ParentHomePage({ user, contacts, onOpen }: { user: User; contact
       <p className="parent-status-note">「確認済み」は、保護者の方が閲覧済みという意味です。</p>
       <section className="card-list">
         {filtered.length ? filtered.map((contact) => <ContactCard key={contact.id} contact={contact} parent read={Boolean(contact.parentReadBy[user.id])} onClick={() => onOpen(contact.id)} />)
-          : <EmptyState title="該当する連絡はありません" description="クラス確認済みの連絡だけがここに表示されます。" />}
+          : <EmptyState title="該当する発言はありません" description="クラス確認済みの発言だけがここに表示されます。" />}
       </section>
     </div>
   )

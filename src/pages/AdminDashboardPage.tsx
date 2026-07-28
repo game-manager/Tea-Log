@@ -110,7 +110,7 @@ export function AdminDashboardPage({ currentUser, profiles, savingId, error, onU
         <div className="admin-quick-launch">
           <label>対象クラス<select value={quickClass} onChange={(event) => setQuickClass(event.target.value)}>{SCHOOL_CLASSES.map((item) => <option key={item}>{item}</option>)}</select></label>
           <button type="button" onClick={() => onOpenClass('student', quickClass)}><GraduationCap size={16} /><span><strong>生徒画面を開く</strong><small>投稿・確認・履歴・通知</small></span><ArrowRight size={16} /></button>
-          <button type="button" onClick={() => onOpenClass('parent', quickClass)}><Eye size={16} /><span><strong>保護者画面を開く</strong><small>確認済み連絡・閲覧管理</small></span><ArrowRight size={16} /></button>
+          <button type="button" onClick={() => onOpenClass('parent', quickClass)}><Eye size={16} /><span><strong>保護者画面を開く</strong><small>確認済み発言・閲覧管理</small></span><ArrowRight size={16} /></button>
         </div>
         {classSummaries.length > 0 ? <div className="admin-class-grid">
           {classSummaries.map((summary) => <article key={summary.className}>

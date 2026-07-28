@@ -16,7 +16,7 @@ export function Header({ user, unreadCount, onNotifications, onLogout, hideNotif
       <div className="header-inner">
         <div className="brand" aria-label="TeachersLog ホーム">
           <span className="brand-icon"><BookOpenCheck size={22} /></span>
-          <span><strong>TeachersLog</strong><small>みんなで確かめる学校連絡</small></span>
+          <span><strong>TeachersLog</strong><small>みんなで確かめる先生の発言</small></span>
         </div>
         <div className="header-actions">
           {!hideNotifications && <button className="icon-button" onClick={onNotifications} aria-label={`通知 ${unreadCount}件`}>

@@ -78,19 +78,19 @@ export const seedData: AppData = {
   ],
   notifications: [
     {
-      id: 'n1', userId: 's1', title: '新しい確認待ちの連絡があります',
+      id: 'n1', userId: 's1', title: '新しい確認待ちの発言があります',
       body: '「来週月曜日の時間割変更」の内容を確認してください。', createdAt: '2026-05-16T11:36:00+09:00', read: false, contactId: 'contact-4',
     },
     {
-      id: 'n2', userId: 's1', title: '投稿した連絡が確認済みになりました',
+      id: 'n2', userId: 's1', title: '投稿した発言が確認済みになりました',
       body: '「明日の体育の持ち物」がクラス確認済みになりました。', createdAt: '2026-05-15T15:42:00+09:00', read: true, contactId: 'contact-1',
     },
     {
-      id: 'n3', userId: 'p1', title: '確認済みの学校連絡が届きました',
+      id: 'n3', userId: 'p1', title: '確認済みの発言が届きました',
       body: '「明日の体育の持ち物」が共有されました。', createdAt: '2026-05-15T15:43:00+09:00', read: false, contactId: 'contact-1',
     },
     {
-      id: 'n4', userId: 'p1', title: '明日が対象日の連絡があります',
+      id: 'n4', userId: 'p1', title: '明日が対象日の発言があります',
       body: '持ち物をお子さまと一緒に確認してください。', createdAt: '2026-05-15T18:00:00+09:00', read: true, contactId: 'contact-1',
     },
   ],

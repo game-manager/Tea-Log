@@ -22,7 +22,7 @@ export function CreatePostPage({ onBack, onSubmit }: { onBack: () => void; onSub
     event.preventDefault()
     const nextErrors: Record<string, string> = {}
     if (!form.title.trim()) nextErrors.title = 'タイトルを入力してください'
-    if (!form.content.trim()) nextErrors.content = '連絡内容を入力してください'
+    if (!form.content.trim()) nextErrors.content = '発言内容を入力してください'
     if (!form.targetDate) nextErrors.targetDate = '対象日を選択してください'
     setErrors(nextErrors)
     setModerationNotice(null)
@@ -51,7 +51,7 @@ export function CreatePostPage({ onBack, onSubmit }: { onBack: () => void; onSub
     <div className="page-shell narrow-page">
       <section className="page-heading with-back">
         <button className="back-button" onClick={onBack} aria-label="戻る" disabled={isChecking}><ArrowLeft /></button>
-        <div><span className="eyebrow">NEW MESSAGE</span><h1>新しい連絡を作成</h1><p>先生から聞いた内容を、できるだけ具体的に入力してください。</p></div>
+        <div><span className="eyebrow">NEW MESSAGE</span><h1>新しい発言を作成</h1><p>先生から聞いた内容を、できるだけ具体的に入力してください。</p></div>
       </section>
       <form className="form-card" onSubmit={submit} noValidate>
         <div className="field">
@@ -66,7 +66,7 @@ export function CreatePostPage({ onBack, onSubmit }: { onBack: () => void; onSub
           <div className="field-footer"><span className="error-text">{errors.title}</span><small>{form.title.length}/60</small></div>
         </div>
         <div className="field">
-          <label htmlFor="content">連絡内容 <b>必須</b></label>
+          <label htmlFor="content">発言内容 <b>必須</b></label>
           <textarea id="content" value={form.content} onChange={(e) => update('content', e.target.value)} placeholder="聞いた内容を入力してください" rows={6} maxLength={500} aria-invalid={Boolean(errors.content)} disabled={isChecking} />
           <div className="field-footer"><span className="error-text">{errors.content}</span><small>{form.content.length}/500</small></div>
         </div>
@@ -81,7 +81,7 @@ export function CreatePostPage({ onBack, onSubmit }: { onBack: () => void; onSub
         </div>
         <div className="ai-moderation-note">
           <ShieldCheck size={18} />
-          <div><strong>Geminiで投稿内容を確認します</strong><p>投稿前に学校連絡として不適切な表現がないかを自動判定します。AIの判定は、内容の正確性を保証するものではありません。</p></div>
+          <div><strong>Geminiで投稿内容を確認します</strong><p>投稿前に学校で共有する発言として不適切な表現がないかを自動判定します。AIの判定は、内容の正確性を保証するものではありません。</p></div>
         </div>
         {moderationNotice && (
           <div className={`moderation-result ${moderationNotice.tone}`} role="alert">
@@ -91,7 +91,7 @@ export function CreatePostPage({ onBack, onSubmit }: { onBack: () => void; onSub
         )}
         <div className="form-note"><strong>投稿後は「未確認」になります</strong><p>クラスメイト3人以上が確認すると、自動で確認済みになり保護者に共有されます。</p></div>
         <button className="primary-button submit-button" type="submit" disabled={isChecking}>
-          {isChecking ? <><LoaderCircle className="spin" size={18} />Geminiが内容を確認中…</> : <><Send size={18} />確認して連絡を投稿する</>}
+          {isChecking ? <><LoaderCircle className="spin" size={18} />Geminiが内容を確認中…</> : <><Send size={18} />確認して発言を投稿する</>}
         </button>
       </form>
     </div>

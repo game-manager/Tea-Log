@@ -92,7 +92,7 @@ export default function App() {
       <button onClick={firebaseSession.logout}>ログアウト</button>
     </main>
   )
-  if (!store.cloudReady) return <FirebaseLoadingPage message={`${activeUser.className}の連絡を読み込んでいます…`} />
+  if (!store.cloudReady) return <FirebaseLoadingPage message={`${activeUser.className}の発言を読み込んでいます…`} />
 
   const renderPage = () => {
     if (page === 'detail' && currentContact) {
@@ -121,6 +121,7 @@ export default function App() {
       <Header user={activeUser} unreadCount={unreadCount} onNotifications={() => navigate('notifications')} onLogout={firebaseSession.logout} adminAccess={isAdmin} />
       {isAdmin && <AdminWorkspaceBar mode={adminMode} className={adminClassName} onModeChange={changeAdminMode} onClassChange={changeAdminClass} />}
       {store.storageError && <div className="storage-warning" role="alert">端末への保存に失敗しました。空き容量やブラウザー設定をご確認ください。</div>}
+      {store.syncError && <div className="storage-warning" role="alert">{store.syncError}</div>}
       <main>{renderPage()}</main>
       <BottomNav role={activeUser.role} currentPage={page} onNavigate={navigate} unreadCount={unreadCount} />
       <footer className="app-footer">

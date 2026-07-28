@@ -20,7 +20,7 @@ export function FirebaseLoginPage({ onLogin, signingIn, error }: {
           {signingIn ? <LoaderCircle className="spin" size={21} /> : <Chrome size={21} />}
           {signingIn ? 'ログインしています…' : 'Googleアカウントでログイン'}
         </button>
-        <small className="auth-policy">上記ドメイン以外のアカウントでは、ログインおよび学校連絡の閲覧はできません。</small>
+        <small className="auth-policy">上記ドメイン以外のアカウントでは、ログインおよび学校で共有された発言の閲覧はできません。</small>
       </section>
     </main>
   )

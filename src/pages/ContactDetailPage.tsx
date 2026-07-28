@@ -34,7 +34,7 @@ export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, 
   }
 
   const handleDelete = () => {
-    if (window.confirm('この連絡を削除しますか？削除した連絡は元に戻せません。')) onDelete()
+    if (window.confirm('この発言を削除しますか？削除した発言は元に戻せません。')) onDelete()
   }
 
   return (
@@ -43,7 +43,7 @@ export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, 
       <article className={`detail-card ${isParent ? 'parent' : ''}`}>
         <div className="detail-topline">
           <div className="badge-row"><StatusBadge status={status} parent={isParent} /><span className="category-badge">{contact.category}</span></div>
-          {((!isParent && contact.authorId === user.id) || canModerate) && <button className="delete-button" onClick={handleDelete} aria-label="連絡を削除"><Trash2 size={18} />{canModerate && contact.authorId !== user.id ? '管理者として削除' : '削除'}</button>}
+          {((!isParent && contact.authorId === user.id) || canModerate) && <button className="delete-button" onClick={handleDelete} aria-label="発言を削除"><Trash2 size={18} />{canModerate && contact.authorId !== user.id ? '管理者として削除' : '削除'}</button>}
         </div>
         <h1>{contact.title}</h1>
         <p className="detail-content">{contact.content}</p>
@@ -78,7 +78,7 @@ export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, 
       {!isParent && status !== 'confirmed' && (
         <div className="sticky-action">
           <button className="primary-button" disabled={hasConfirmed} onClick={handleConfirm}><Check size={20} />{hasConfirmed ? '確認済みです' : '内容を確認した'}</button>
-          <small>{hasConfirmed ? '同じ連絡を複数回確認することはできません' : '先生から聞いた内容と同じ場合に押してください'}</small>
+          <small>{hasConfirmed ? '同じ発言を複数回確認することはできません' : '先生から聞いた内容と同じ場合に押してください'}</small>
         </div>
       )}
       {isParent && (

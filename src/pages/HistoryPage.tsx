@@ -23,7 +23,7 @@ export function HistoryPage({ user, contacts, onOpen }: { user: User; contacts: 
 
   return (
     <div className="page-shell">
-      <section className="page-heading"><div><span className="eyebrow">ARCHIVE</span><h1>{isParent ? '過去の学校連絡' : '連絡の履歴'}</h1><p>{isParent ? 'クラス確認済みになった連絡を振り返れます。' : '投稿・確認した連絡と、その日時を確認できます。'}</p></div></section>
+      <section className="page-heading"><div><span className="eyebrow">ARCHIVE</span><h1>{isParent ? '過去の発言' : '発言の履歴'}</h1><p>{isParent ? 'クラス確認済みになった発言を振り返れます。' : '投稿・確認した発言と、その日時を確認できます。'}</p></div></section>
       {!isParent && <div className="tabs history-tabs" role="tablist">
         {tabs.map(({ value, label, icon: Icon }) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}><Icon size={16} />{label}</button>)}
       </div>}
@@ -34,7 +34,7 @@ export function HistoryPage({ user, contacts, onOpen }: { user: User; contacts: 
             <ContactCard contact={contact} onClick={() => onOpen(contact.id)} parent={isParent} read={isParent ? Boolean(contact.parentReadBy[user.id]) : undefined} />
             {!isParent && confirmation && <span className="history-time"><CheckCircle2 size={14} />あなたの確認日時：{new Date(confirmation.confirmedAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
           </div>
-        }) : <EmptyState title="履歴はまだありません" description="該当する連絡ができると、ここに表示されます。" />}
+        }) : <EmptyState title="履歴はまだありません" description="該当する発言ができると、ここに表示されます。" />}
       </section>
     </div>
   )

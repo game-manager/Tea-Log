@@ -5,14 +5,14 @@ interface NavItem { page: Page; label: string; icon: LucideIcon }
 
 const studentItems: NavItem[] = [
   { page: 'home', label: 'ホーム', icon: Home },
-  { page: 'create', label: '連絡を作成', icon: Plus },
+  { page: 'create', label: '発言を作成', icon: Plus },
   { page: 'history', label: '履歴', icon: ClipboardCheck },
   { page: 'notifications', label: '通知', icon: Bell },
 ]
 
 const parentItems: NavItem[] = [
   { page: 'home', label: 'ホーム', icon: Home },
-  { page: 'history', label: '過去の連絡', icon: ClipboardCheck },
+  { page: 'history', label: '過去の発言', icon: ClipboardCheck },
   { page: 'notifications', label: '通知', icon: Bell },
 ]
 

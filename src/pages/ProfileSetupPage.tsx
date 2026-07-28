@@ -38,7 +38,7 @@ export function ProfileSetupPage({ account, saving, error, onSave, onLogout }: P
           <span className="eyebrow">WELCOME</span>
           <h1>あなたの情報を<br />登録してください。</h1>
           <p>登録内容はFirebase Authenticationのアカウントに紐づき、次回から同じ画面が自動的に開きます。</p>
-          <div className="intro-points"><span><CheckCircle2 />Firebase UIDで本人を識別</span><span><ShieldCheck />同じクラスの連絡だけを共有</span></div>
+          <div className="intro-points"><span><CheckCircle2 />Firebase UIDで本人を識別</span><span><ShieldCheck />同じクラスの発言だけを共有</span></div>
         </div>
       </section>
       <section className="login-panel">
@@ -53,7 +53,7 @@ export function ProfileSetupPage({ account, saving, error, onSave, onLogout }: P
           {adminAccount ? <div className="admin-account-notice"><ShieldCheck size={18} /><div><strong>管理者アカウント</strong><small>指定された管理者メールアドレスとして登録します。</small></div></div> : <fieldset className="role-selector" disabled={saving}>
             <legend>利用区分</legend>
             <label className={role === 'student' ? 'selected' : ''}><input type="radio" name="role" value="student" checked={role === 'student'} onChange={() => setRole('student')} /><strong>生徒</strong><small>投稿と確認に参加します</small></label>
-            <label className={role === 'parent' ? 'selected parent-role' : 'parent-role'}><input type="radio" name="role" value="parent" checked={role === 'parent'} onChange={() => setRole('parent')} /><strong>保護者</strong><small>確認済み連絡を閲覧します</small></label>
+            <label className={role === 'parent' ? 'selected parent-role' : 'parent-role'}><input type="radio" name="role" value="parent" checked={role === 'parent'} onChange={() => setRole('parent')} /><strong>保護者</strong><small>確認済み発言を閲覧します</small></label>
           </fieldset>}
           {!adminAccount && <div className="field">
             <label htmlFor="profile-class">所属クラス <b>必須</b></label>
