@@ -5,6 +5,7 @@ import { Header } from './components/Header'
 import { isAdminEmail } from './config/admins'
 import { SCHOOL_CLASSES } from './config/classes'
 import { useFirebaseAuth } from './hooks/useFirebaseAuth'
+import { useCorrectionReports } from './hooks/useCorrectionReports'
 import { useModerationQueue } from './hooks/useModerationQueue'
 import { useTeachersLog } from './hooks/useTeachersLog'
 import { useUserProfile } from './hooks/useUserProfile'
@@ -55,6 +56,7 @@ export default function App() {
     : [], [activeUser, profileSession.profiles])
   const store = useTeachersLog(activeUser, classProfiles)
   const reviewQueue = useModerationQueue(user, profileSession.profiles)
+  const correctionReports = useCorrectionReports(user, profileSession.profiles)
   const currentContact = store.contacts.find((contact) => contact.id === selectedId)
   const userNotifications = useMemo(() => activeUser ? store.notifications.filter((item) => item.userId === activeUser.id) : [], [activeUser, store.notifications])
   const unreadCount = userNotifications.filter((item) => !item.read).length
@@ -89,10 +91,16 @@ export default function App() {
         moderationLoading={reviewQueue.loading}
         moderationProcessingId={reviewQueue.processingId}
         moderationError={reviewQueue.error}
+        correctionReports={correctionReports.reports}
+        correctionLoading={correctionReports.loading}
+        correctionProcessingId={correctionReports.processingId}
+        correctionError={correctionReports.error}
         onUpdate={profileSession.updateProfileAsAdmin}
         onOpenClass={openAdminClass}
         onApproveReview={(reviewId) => reviewQueue.approve(reviewId, user)}
         onRejectReview={(reviewId, reason) => reviewQueue.reject(reviewId, user, reason)}
+        onCorrectReport={(reportId, input) => correctionReports.correct(reportId, user, input)}
+        onDismissReport={(reportId, note) => correctionReports.dismiss(reportId, user, note)}
       />
       <footer className="app-footer"><span>TeachersLog Admin · {firebaseSession.account.email}</span></footer>
     </div>
@@ -121,6 +129,7 @@ export default function App() {
         onConfirm={() => { store.confirmContact(currentContact.id, activeUser); return willComplete }}
         onRead={() => store.markParentRead(currentContact.id, activeUser.id)}
         onDelete={() => { store.deleteContact(currentContact.id, activeUser, isAdmin); navigate('home') }}
+        onReportIssue={(reason, details) => correctionReports.submit(currentContact, activeUser, reason, details).then(() => undefined)}
         canModerate={isAdmin}
       />
     }
@@ -128,6 +137,7 @@ export default function App() {
       onBack={() => navigate('home')}
       onSubmit={(input) => { const id = store.createContact(input, activeUser); openContact(id) }}
       onReviewRequired={async (input, result) => { await reviewQueue.submitForReview(input, activeUser, result) }}
+      draftKey={`teacherslog:draft:${activeUser.id}:${activeUser.className}`}
     />
     if (page === 'history') return <HistoryPage user={activeUser} contacts={store.contacts} onOpen={openContact} />
     if (page === 'notifications') return <NotificationsPage notifications={userNotifications} onOpen={openContact} onRead={store.markNotificationRead} onReadAll={() => store.markAllNotificationsRead(activeUser.id)} />

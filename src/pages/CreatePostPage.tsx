@@ -1,5 +1,5 @@
-import { ArrowLeft, CalendarDays, LoaderCircle, Send, ShieldAlert, ShieldCheck } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { ArrowLeft, CalendarDays, LoaderCircle, Save, Send, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { Category } from '../types'
 import type { NewContactInput } from '../hooks/useTeachersLog'
 import type { ModerationResult } from '../services/contentModeration'
@@ -9,16 +9,52 @@ const categories: Category[] = ['持ち物', '宿題', '提出物', '時間割�
 
 type ModerationNotice = { tone: 'review' | 'error'; message: string } | null
 
-export function CreatePostPage({ onBack, onSubmit, onReviewRequired }: {
+const emptyForm = (): NewContactInput => ({ category: '持ち物', title: '', content: '', targetDate: toDateInput(), memo: '' })
+
+function loadDraft(key: string) {
+  try {
+    const stored = localStorage.getItem(key)
+    if (!stored) return { form: emptyForm(), restored: false }
+    const value = JSON.parse(stored) as { form?: Partial<NewContactInput> }
+    return { form: { ...emptyForm(), ...value.form }, restored: true }
+  } catch {
+    return { form: emptyForm(), restored: false }
+  }
+}
+
+export function CreatePostPage({ onBack, onSubmit, onReviewRequired, draftKey }: {
   onBack: () => void
   onSubmit: (input: NewContactInput) => void | Promise<void>
   onReviewRequired: (input: NewContactInput, result: ModerationResult) => Promise<void>
+  draftKey: string
 }) {
-  const [form, setForm] = useState<NewContactInput>({ category: '持ち物', title: '', content: '', targetDate: toDateInput(), memo: '' })
+  const [initialDraft] = useState(() => loadDraft(draftKey))
+  const [form, setForm] = useState<NewContactInput>(initialDraft.form)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isChecking, setIsChecking] = useState(false)
   const [submittedForReview, setSubmittedForReview] = useState(false)
   const [moderationNotice, setModerationNotice] = useState<ModerationNotice>(null)
+  const [draftSavedAt, setDraftSavedAt] = useState(initialDraft.restored ? '前回の下書きを復元しました' : '')
+
+  useEffect(() => {
+    if (submittedForReview || (!form.title.trim() && !form.content.trim() && !form.memo.trim())) return
+    const timeout = window.setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ form, savedAt: new Date().toISOString() }))
+        setDraftSavedAt('下書き保存済み')
+      } catch {
+        setDraftSavedAt('下書きを保存できませんでした')
+      }
+    }, 400)
+    return () => window.clearTimeout(timeout)
+  }, [draftKey, form, submittedForReview])
+
+  const removeDraft = () => {
+    try { localStorage.removeItem(draftKey) } catch { /* keep the form in memory */ }
+    setForm(emptyForm())
+    setDraftSavedAt('')
+    setModerationNotice(null)
+  }
 
   const update = (name: keyof NewContactInput, value: string) => {
     setForm((current) => ({ ...current, [name]: value }))
@@ -46,10 +82,12 @@ export function CreatePostPage({ onBack, onSubmit, onReviewRequired }: {
           return
         }
         setSubmittedForReview(true)
+        try { localStorage.removeItem(draftKey) } catch { /* submission is already stored in Firestore */ }
         setModerationNotice({ tone: 'review', message: 'Geminiの判定結果と投稿内容を管理者へ送りました。承認されると「未確認」の発言として公開され、却下された場合も通知でお知らせします。' })
         return
       }
       await onSubmit(form)
+      try { localStorage.removeItem(draftKey) } catch { /* the post is already stored */ }
     } catch (error) {
       const { getModerationErrorMessage } = await import('../services/contentModeration')
       setModerationNotice({
@@ -67,6 +105,7 @@ export function CreatePostPage({ onBack, onSubmit, onReviewRequired }: {
         <button className="back-button" onClick={onBack} aria-label="戻る" disabled={isChecking}><ArrowLeft /></button>
         <div><span className="eyebrow">NEW MESSAGE</span><h1>新しい発言を作成</h1><p>先生から聞いた内容を、できるだけ具体的に入力してください。</p></div>
       </section>
+      <div className="draft-status"><Save size={15} /><span>{draftSavedAt || '入力内容はこの端末に自動保存されます'}</span>{(form.title || form.content || form.memo) && <button type="button" onClick={removeDraft} disabled={isChecking || submittedForReview}><Trash2 size={14} />下書きを削除</button>}</div>
       <form className="form-card" onSubmit={submit} noValidate>
         <div className="field">
           <label htmlFor="category">カテゴリ <b>必須</b></label>

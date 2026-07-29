@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 
 export const ALLOWED_EMAIL_DOMAIN = 'ryugasaki1-h.ibk.ed.jp'
 
@@ -21,7 +21,15 @@ export const firebaseAppCheck = initializeAppCheck(firebaseApp, {
   isTokenAutoRefreshEnabled: true,
 })
 export const firebaseAuth = getAuth(firebaseApp)
-export const firestore = getFirestore(firebaseApp)
+export const firestore = (() => {
+  try {
+    return initializeFirestore(firebaseApp, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    })
+  } catch {
+    return getFirestore(firebaseApp)
+  }
+})()
 
 export const googleProvider = new GoogleAuthProvider()
 googleProvider.setCustomParameters({

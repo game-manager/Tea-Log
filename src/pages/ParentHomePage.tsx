@@ -1,6 +1,7 @@
 import { MailCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ContactCard } from '../components/ContactCard'
+import { ContactListToolbar, type CategoryFilter, type ContactSort } from '../components/ContactListToolbar'
 import { EmptyState } from '../components/EmptyState'
 import type { Contact, User } from '../types'
 
@@ -8,12 +9,20 @@ type ParentTab = 'all' | 'unread' | 'read'
 
 export function ParentHomePage({ user, contacts, onOpen }: { user: User; contacts: Contact[]; onOpen: (id: string) => void }) {
   const [tab, setTab] = useState<ParentTab>('all')
+  const [query, setQuery] = useState('')
+  const [category, setCategory] = useState<CategoryFilter>('all')
+  const [sort, setSort] = useState<ContactSort>('newest')
   const confirmed = useMemo(() => contacts.filter((contact) => Boolean(contact.confirmedAt)), [contacts])
-  const filtered = useMemo(() => confirmed.filter((contact) => {
-    if (tab === 'unread') return !contact.parentReadBy[user.id]
-    if (tab === 'read') return Boolean(contact.parentReadBy[user.id])
-    return true
-  }), [confirmed, tab, user.id])
+  const filtered = useMemo(() => {
+    const normalized = query.trim().toLowerCase()
+    return confirmed.filter((contact) => {
+      if (tab === 'unread') return !contact.parentReadBy[user.id]
+      if (tab === 'read') return Boolean(contact.parentReadBy[user.id])
+      return true
+    }).filter((contact) => category === 'all' || contact.category === category)
+      .filter((contact) => !normalized || `${contact.title} ${contact.content} ${contact.authorName}`.toLowerCase().includes(normalized))
+      .sort((a, b) => sort === 'targetDate' ? a.targetDate.localeCompare(b.targetDate) : b.postedAt.localeCompare(a.postedAt))
+  }, [category, confirmed, query, sort, tab, user.id])
   const unreadCount = confirmed.filter((contact) => !contact.parentReadBy[user.id]).length
 
   return (
@@ -28,6 +37,7 @@ export function ParentHomePage({ user, contacts, onOpen }: { user: User; contact
         ))}
       </div>
       <p className="parent-status-note">「確認済み」は、保護者の方が閲覧済みという意味です。</p>
+      <ContactListToolbar query={query} category={category} sort={sort} onQueryChange={setQuery} onCategoryChange={setCategory} onSortChange={setSort} />
       <section className="card-list">
         {filtered.length ? filtered.map((contact) => <ContactCard key={contact.id} contact={contact} parent read={Boolean(contact.parentReadBy[user.id])} onClick={() => onOpen(contact.id)} />)
           : <EmptyState title="該当する発言はありません" description="クラス確認済みの発言だけがここに表示されます。" />}

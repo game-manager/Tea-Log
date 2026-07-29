@@ -5,7 +5,9 @@ export default defineConfig({
   base: '/Tea-Log/',
   plugins: [react()],
   build: {
-    chunkSizeWarningLimit: 550,
+    // Firebase Firestore is isolated as a long-lived vendor chunk. Its gzip
+    // size is about 164 kB, so use a threshold that reflects that split.
+    chunkSizeWarningLimit: 650,
     rollupOptions: {
       output: {
         manualChunks: {

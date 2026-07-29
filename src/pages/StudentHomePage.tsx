@@ -1,9 +1,11 @@
 import { Plus, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ContactCard } from '../components/ContactCard'
+import { ContactListToolbar, type CategoryFilter, type ContactSort } from '../components/ContactListToolbar'
 import { EmptyState } from '../components/EmptyState'
 import type { Contact, ContactStatus, User } from '../types'
 import { getStatus } from '../utils/status'
+import { daysUntil } from '../utils/date'
 
 const tabs: { value: ContactStatus; label: string }[] = [
   { value: 'unconfirmed', label: '未確認' },
@@ -18,8 +20,19 @@ export function StudentHomePage({ user, contacts, onOpen, onCreate }: {
   onCreate: () => void
 }) {
   const [tab, setTab] = useState<ContactStatus>('confirming')
-  const filtered = useMemo(() => contacts.filter((contact) => getStatus(contact) === tab), [contacts, tab])
+  const [query, setQuery] = useState('')
+  const [category, setCategory] = useState<CategoryFilter>('all')
+  const [sort, setSort] = useState<ContactSort>('newest')
+  const filtered = useMemo(() => {
+    const normalized = query.trim().toLowerCase()
+    return contacts
+      .filter((contact) => getStatus(contact) === tab)
+      .filter((contact) => category === 'all' || contact.category === category)
+      .filter((contact) => !normalized || `${contact.title} ${contact.content} ${contact.authorName}`.toLowerCase().includes(normalized))
+      .sort((a, b) => sort === 'targetDate' ? a.targetDate.localeCompare(b.targetDate) : b.postedAt.localeCompare(a.postedAt))
+  }, [category, contacts, query, sort, tab])
   const counts = useMemo(() => Object.fromEntries(tabs.map(({ value }) => [value, contacts.filter((contact) => getStatus(contact) === value).length])), [contacts])
+  const upcomingCount = useMemo(() => contacts.filter((contact) => { const days = daysUntil(contact.targetDate); return days >= 0 && days <= 2 }).length, [contacts])
 
   return (
     <div className="page-shell">
@@ -30,7 +43,7 @@ export function StudentHomePage({ user, contacts, onOpen, onCreate }: {
 
       <section className="summary-strip">
         <Sparkles size={19} />
-        <div><strong>{counts.confirming}件の発言が確認中です</strong><span>聞いた内容と同じか確認してください</span></div>
+        <div><strong>{counts.confirming}件の発言が確認中です</strong><span>聞いた内容と同じか確認してください{upcomingCount > 0 ? `・2日以内の予定 ${upcomingCount}件` : ''}</span></div>
       </section>
 
       <div className="tabs" role="tablist" aria-label="発言の状態">
@@ -40,6 +53,8 @@ export function StudentHomePage({ user, contacts, onOpen, onCreate }: {
           </button>
         ))}
       </div>
+
+      <ContactListToolbar query={query} category={category} sort={sort} onQueryChange={setQuery} onCategoryChange={setCategory} onSortChange={setSort} />
 
       <section className="card-list" aria-live="polite">
         {filtered.length > 0 ? filtered.map((contact) => <ContactCard key={contact.id} contact={contact} onClick={() => onOpen(contact.id)} />)

@@ -1,10 +1,12 @@
 import { ArrowRight, Eye, GraduationCap, Save, Search, ShieldCheck, UserRound, UsersRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { AdminModerationQueue } from '../components/AdminModerationQueue'
+import { AdminCorrectionQueue } from '../components/AdminCorrectionQueue'
 import { isAdminEmail } from '../config/admins'
 import { SCHOOL_CLASSES } from '../config/classes'
 import type { AdminProfileUpdate } from '../hooks/useUserProfile'
-import type { ModerationReview, User } from '../types'
+import type { CorrectionDecisionInput } from '../hooks/useCorrectionReports'
+import type { CorrectionReport, ModerationReview, User } from '../types'
 
 type FilterRole = 'all' | 'student' | 'parent' | 'admin'
 
@@ -17,10 +19,16 @@ interface Props {
   moderationLoading: boolean
   moderationProcessingId: string
   moderationError: string
+  correctionReports: CorrectionReport[]
+  correctionLoading: boolean
+  correctionProcessingId: string
+  correctionError: string
   onUpdate: (userId: string, input: AdminProfileUpdate) => Promise<void>
   onOpenClass: (mode: 'student' | 'parent', className: string) => void
   onApproveReview: (reviewId: string) => Promise<void>
   onRejectReview: (reviewId: string, reason: string) => Promise<void>
+  onCorrectReport: (reportId: string, input: CorrectionDecisionInput) => Promise<void>
+  onDismissReport: (reportId: string, note: string) => Promise<void>
 }
 
 function roleLabel(role: User['role']) {
@@ -75,7 +83,9 @@ function UserEditor({ profile, saving, onUpdate }: {
 
 export function AdminDashboardPage({
   currentUser, profiles, savingId, error, moderationReviews, moderationLoading,
-  moderationProcessingId, moderationError, onUpdate, onOpenClass, onApproveReview, onRejectReview,
+  moderationProcessingId, moderationError, correctionReports, correctionLoading,
+  correctionProcessingId, correctionError, onUpdate, onOpenClass, onApproveReview,
+  onRejectReview, onCorrectReport, onDismissReport,
 }: Props) {
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<FilterRole>('all')
@@ -122,6 +132,14 @@ export function AdminDashboardPage({
         error={moderationError}
         onApprove={onApproveReview}
         onReject={onRejectReview}
+      />
+      <AdminCorrectionQueue
+        reports={correctionReports}
+        loading={correctionLoading}
+        processingId={correctionProcessingId}
+        error={correctionError}
+        onCorrect={onCorrectReport}
+        onDismiss={onDismissReport}
       />
       <section className="admin-class-section">
         <div className="admin-section-heading"><div><h2>クラス運用</h2><p>管理者のまま対象クラスの投稿・確認・履歴・保護者画面を利用できます。</p></div></div>

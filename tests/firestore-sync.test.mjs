@@ -173,3 +173,59 @@ test('AI判定後の投稿は本人だけが登録でき、管理者だけが審
     contactId: 'approved-contact-001',
   }))
 })
+
+test('訂正依頼は報告者と管理者だけが閲覧でき、管理者だけが監査記録付きで処理できる', async () => {
+  const reporter = testEnvironment.authenticatedContext('student-device-a', authToken('device-a@ryugasaki1-h.ibk.ed.jp')).firestore()
+  const classmate = testEnvironment.authenticatedContext('student-device-b', authToken('device-b@ryugasaki1-h.ibk.ed.jp')).firestore()
+  const admin = testEnvironment.authenticatedContext('admin-user', authToken('saito.nozomu@ryugasaki1-h.ibk.ed.jp')).firestore()
+  const reportId = 'correction-report-001'
+  const contact = {
+    title: '体育の集合場所',
+    content: '体育館へ集合してください。',
+    targetDate: '2026-07-30',
+    memo: '',
+  }
+  const report = {
+    id: reportId,
+    className,
+    contactId: 'sync-contact-001',
+    contactTitle: contact.title,
+    contactRevision: 1,
+    reportedContact: contact,
+    reporterId: 'student-device-a',
+    reporterName: '端末A',
+    reporterEmail: 'device-a@ryugasaki1-h.ibk.ed.jp',
+    reporterRole: 'student',
+    reason: '持ち物・場所が違う',
+    details: 'グラウンドと聞きました。',
+    submittedAt: '2026-07-30T01:00:00.000Z',
+    status: 'pending',
+  }
+
+  const reporterRef = doc(reporter, 'teacherslogCorrectionReports', reportId)
+  await assertSucceeds(setDoc(reporterRef, report))
+  await assertSucceeds(getDoc(reporterRef))
+  await assertFails(getDoc(doc(classmate, 'teacherslogCorrectionReports', reportId)))
+  await assertFails(updateDoc(reporterRef, { status: 'dismissed' }))
+
+  const correctedContact = {
+    ...contact,
+    content: 'グラウンドへ集合してください。',
+  }
+  const adminRef = doc(admin, 'teacherslogCorrectionReports', reportId)
+  await assertSucceeds(getDoc(adminRef))
+  await assertSucceeds(updateDoc(adminRef, {
+    status: 'corrected',
+    resolvedAt: '2026-07-30T01:05:00.000Z',
+    resolvedBy: 'admin-user',
+    resolvedByName: '管理者',
+    decisionNote: '報告内容を確認して集合場所を訂正しました。',
+    previousContact: contact,
+    correctedContact,
+  }))
+
+  const resolved = await getDoc(adminRef)
+  assert.equal(resolved.data().status, 'corrected')
+  assert.equal(resolved.data().correctedContact.content, 'グラウンドへ集合してください。')
+  await assertFails(updateDoc(adminRef, { decisionNote: '監査履歴の書き換え' }))
+})

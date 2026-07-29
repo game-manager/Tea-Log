@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TeachersLog">
+  <rect width="512" height="512" rx="112" fill="#18794e"/>
+  <path d="M132 132h248v62H288v218h-64V194h-92z" fill="#fff"/>
+  <path d="M116 286h74v62h-74zm206 0h74v62h-74z" fill="#bce6cf"/>
+</svg>

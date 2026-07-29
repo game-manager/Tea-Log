@@ -1,6 +1,6 @@
 import { CalendarDays, ChevronRight, UserRound } from 'lucide-react'
 import type { Contact } from '../types'
-import { formatDate, formatDateTime } from '../utils/date'
+import { deadlineInfo, formatDate, formatDateTime } from '../utils/date'
 import { getStatus } from '../utils/status'
 import { StatusBadge } from './StatusBadge'
 
@@ -13,12 +13,14 @@ interface Props {
 
 export function ContactCard({ contact, onClick, parent = false, read }: Props) {
   const status = getStatus(contact)
+  const deadline = deadlineInfo(contact.targetDate)
   return (
     <button className="contact-card" onClick={onClick} type="button">
       <div className="card-topline">
         <div className="badge-row">
           <StatusBadge status={status} parent={parent} />
           <span className="category-badge">{contact.category}</span>
+          {deadline && <span className={`deadline-badge ${deadline.tone}`}>{deadline.label}</span>}
           {parent && read !== undefined && <span className={`read-badge ${read ? 'is-read' : ''}`}>{read ? '閲覧済み' : '未読'}</span>}
         </div>
         <ChevronRight className="card-chevron" size={20} aria-hidden="true" />

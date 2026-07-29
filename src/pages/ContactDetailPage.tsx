@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Check, CheckCircle2, Clock3, FileText, Trash2, UserRound, UsersRound } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CalendarDays, Check, CheckCircle2, Clock3, FilePenLine, FileText, LoaderCircle, Send, Trash2, UserRound, UsersRound, X } from 'lucide-react'
 import { useState } from 'react'
 import { SafetyNotice } from '../components/SafetyNotice'
 import { StatusBadge } from '../components/StatusBadge'
@@ -14,15 +14,24 @@ interface Props {
   onConfirm: () => boolean
   onRead: () => void
   onDelete: () => void
+  onReportIssue: (reason: string, details: string) => Promise<void>
   canModerate?: boolean
 }
 
-export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, onRead, onDelete, canModerate = false }: Props) {
+const reportReasons = ['聞いた内容と違う', '日時・期限が違う', '持ち物・場所が違う', '内容が古くなった', 'その他']
+
+export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, onRead, onDelete, onReportIssue, canModerate = false }: Props) {
   const status = getStatus(contact)
   const isParent = user.role === 'parent'
   const hasConfirmed = contact.confirmations.some((item) => item.studentId === user.id)
   const isRead = Boolean(contact.parentReadBy[user.id])
   const [message, setMessage] = useState('')
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState(reportReasons[0])
+  const [reportDetails, setReportDetails] = useState('')
+  const [reporting, setReporting] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
+  const [reportError, setReportError] = useState('')
   const confirmedStudents = contact.confirmations.map((confirmation) => ({
     ...confirmation,
     name: confirmation.studentName ?? profiles.find((profile) => profile.id === confirmation.studentId)?.name ?? '生徒',
@@ -37,6 +46,21 @@ export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, 
     if (window.confirm('この発言を削除しますか？削除した発言は元に戻せません。')) onDelete()
   }
 
+  const submitReport = async () => {
+    setReporting(true)
+    setReportError('')
+    try {
+      await onReportIssue(reportReason, reportDetails)
+      setReportSent(true)
+      setReportOpen(false)
+      setMessage('訂正依頼を管理者へ送りました。対応結果は通知でお知らせします。')
+    } catch {
+      setReportError('訂正依頼を送信できませんでした。同じ内容をすでに報告している場合は、管理者の対応をお待ちください。')
+    } finally {
+      setReporting(false)
+    }
+  }
+
   return (
     <div className="page-shell detail-page">
       <button className="text-back" onClick={onBack}><ArrowLeft size={18} />一覧に戻る</button>
@@ -46,6 +70,7 @@ export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, 
           {((!isParent && contact.authorId === user.id) || canModerate) && <button className="delete-button" onClick={handleDelete} aria-label="発言を削除"><Trash2 size={18} />{canModerate && contact.authorId !== user.id ? '管理者として削除' : '削除'}</button>}
         </div>
         <h1>{contact.title}</h1>
+        {contact.correctedAt && <div className="correction-banner"><FilePenLine size={17} /><div><strong>管理者により訂正されています</strong><p>{contact.correctionNote}</p><small>第{contact.revision ?? 2}版・{formatDateTime(contact.correctedAt)}更新</small></div></div>}
         <p className="detail-content">{contact.content}</p>
         {contact.memo && <div className="memo-box"><FileText size={18} /><div><strong>メモ</strong><p>{contact.memo}</p></div></div>}
         <dl className="detail-meta-grid">
@@ -71,8 +96,27 @@ export function ContactDetailPage({ contact, user, profiles, onBack, onConfirm, 
             </div>
           )}
         </section>
+        <section className="report-issue-panel">
+          <div><AlertTriangle size={18} /><span><strong>聞いた内容と違いますか？</strong><small>相違がある場合は管理者へ訂正を依頼できます。</small></span></div>
+          <button type="button" onClick={() => { setReportOpen(true); setReportError('') }} disabled={reportSent}>{reportSent ? '報告済み' : '内容の相違を報告'}</button>
+        </section>
         <SafetyNotice />
       </article>
+
+      {reportOpen && (
+        <div className="report-dialog" role="dialog" aria-modal="true" aria-labelledby="report-title">
+          <div className="report-dialog-card">
+            <button className="report-dialog-close" type="button" onClick={() => setReportOpen(false)} aria-label="閉じる" disabled={reporting}><X size={19} /></button>
+            <AlertTriangle size={24} />
+            <h2 id="report-title">内容の相違を報告</h2>
+            <p>この発言はすぐには変更されません。管理者が内容を確認し、対応結果を通知します。</p>
+            <label>相違の種類<select value={reportReason} onChange={(event) => setReportReason(event.target.value)} disabled={reporting}>{reportReasons.map((reason) => <option key={reason}>{reason}</option>)}</select></label>
+            <label>詳しい内容<textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={300} rows={4} placeholder="正しいと思われる内容や、先生から聞いた内容を入力してください" disabled={reporting} /></label>
+            {reportError && <div className="report-error" role="alert">{reportError}</div>}
+            <button className="primary-button" type="button" onClick={submitReport} disabled={reporting}>{reporting ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}{reporting ? '送信中…' : '管理者へ送信'}</button>
+          </div>
+        </div>
+      )}
 
       {message && <div className="success-toast" role="status"><CheckCircle2 size={19} />{message}</div>}
       {!isParent && status !== 'confirmed' && (

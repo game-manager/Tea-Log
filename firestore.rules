@@ -99,6 +99,70 @@ service cloud.firestore {
           || (request.resource.data.contactId is string && request.resource.data.contactId.size() > 0));
     }
 
+    function isValidCorrectableContact(value) {
+      return value is map
+        && value.keys().hasAll(['title', 'content', 'targetDate', 'memo'])
+        && value.keys().hasOnly(['title', 'content', 'targetDate', 'memo'])
+        && value.title is string && value.title.size() > 0 && value.title.size() <= 60
+        && value.content is string && value.content.size() > 0 && value.content.size() <= 500
+        && value.targetDate is string && value.targetDate.size() <= 10
+        && value.memo is string && value.memo.size() <= 200;
+    }
+
+    function hasValidCorrectionReport(reportId) {
+      return request.resource.data.keys().hasAll([
+          'id', 'className', 'contactId', 'contactTitle', 'contactRevision',
+          'reportedContact', 'reporterId', 'reporterName', 'reporterEmail',
+          'reporterRole', 'reason', 'details', 'submittedAt', 'status'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id', 'className', 'contactId', 'contactTitle', 'contactRevision',
+          'reportedContact', 'reporterId', 'reporterName', 'reporterEmail',
+          'reporterRole', 'reason', 'details', 'submittedAt', 'status'
+        ])
+        && request.resource.data.id == reportId
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.reporterEmail == request.auth.token.email
+        && request.resource.data.reporterRole in ['student', 'parent']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.className is string
+        && request.resource.data.contactId is string
+        && request.resource.data.contactId.size() > 0
+        && request.resource.data.contactTitle is string
+        && request.resource.data.contactTitle.size() > 0
+        && request.resource.data.contactTitle.size() <= 60
+        && request.resource.data.contactRevision is int
+        && request.resource.data.contactRevision > 0
+        && isValidCorrectableContact(request.resource.data.reportedContact)
+        && request.resource.data.reporterName is string
+        && request.resource.data.reporterName.size() > 0
+        && request.resource.data.reporterName.size() <= 40
+        && request.resource.data.reason in ['聞いた内容と違う', '日時・期限が違う', '持ち物・場所が違う', '内容が古くなった', 'その他']
+        && request.resource.data.details is string
+        && request.resource.data.details.size() <= 300
+        && request.resource.data.submittedAt is string;
+    }
+
+    function isValidCorrectionDecision() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'resolvedAt', 'resolvedBy', 'resolvedByName', 'decisionNote',
+          'previousContact', 'correctedContact'
+        ])
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['corrected', 'dismissed']
+        && request.resource.data.resolvedAt is string
+        && request.resource.data.resolvedBy == request.auth.uid
+        && request.resource.data.resolvedByName is string
+        && request.resource.data.resolvedByName.size() > 0
+        && request.resource.data.resolvedByName.size() <= 40
+        && request.resource.data.decisionNote is string
+        && request.resource.data.decisionNote.size() > 0
+        && request.resource.data.decisionNote.size() <= 300
+        && (request.resource.data.status == 'dismissed'
+          || (isValidCorrectableContact(request.resource.data.previousContact)
+            && isValidCorrectableContact(request.resource.data.correctedContact)));
+    }
+
     match /teacherslogProfiles/{userId} {
       allow get: if isAdmin()
         || (isAllowedSchoolGoogleUser()
@@ -155,6 +219,19 @@ service cloud.firestore {
           || get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className == request.resource.data.className)
         && hasValidModerationSubmission(reviewId);
       allow update: if isAdmin() && isValidModerationDecision();
+      allow delete: if false;
+    }
+
+    match /teacherslogCorrectionReports/{reportId} {
+      allow read: if isAdmin()
+        || (isAllowedSchoolGoogleUser() && resource.data.reporterId == request.auth.uid);
+      allow create: if isAllowedSchoolGoogleUser()
+        && exists(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid))
+        && (isAdmin()
+          || (get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.className == request.resource.data.className
+            && get(/databases/$(database)/documents/teacherslogProfiles/$(request.auth.uid)).data.role == request.resource.data.reporterRole))
+        && hasValidCorrectionReport(reportId);
+      allow update: if isAdmin() && isValidCorrectionDecision();
       allow delete: if false;
     }
 

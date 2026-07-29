@@ -38,6 +38,10 @@ export interface Contact {
   totalStudents: number
   confirmedAt?: string
   parentReadBy: Record<string, string>
+  revision?: number
+  correctedAt?: string
+  correctedByName?: string
+  correctionNote?: string
 }
 
 export interface AppNotification {
@@ -77,4 +81,36 @@ export interface ModerationReview {
   reviewedByName?: string
   decisionReason?: string
   contactId?: string
+}
+
+export type CorrectionReportStatus = 'pending' | 'corrected' | 'dismissed'
+
+export interface CorrectableContactFields {
+  title: string
+  content: string
+  targetDate: string
+  memo: string
+}
+
+export interface CorrectionReport {
+  id: string
+  className: string
+  contactId: string
+  contactTitle: string
+  contactRevision: number
+  reportedContact: CorrectableContactFields
+  reporterId: string
+  reporterName: string
+  reporterEmail: string
+  reporterRole: UserRole
+  reason: string
+  details: string
+  submittedAt: string
+  status: CorrectionReportStatus
+  resolvedAt?: string
+  resolvedBy?: string
+  resolvedByName?: string
+  decisionNote?: string
+  previousContact?: CorrectableContactFields
+  correctedContact?: CorrectableContactFields
 }
